@@ -50,11 +50,11 @@ function buildGraphData(skills) {
   nodes.forEach((node) => {
     node.relations.subclasses?.forEach((sub) => {
       if (!nodeIds.has(sub.id)) return;
-      links.push({ source: node.id, target: sub.id, color: "#FF4500", width: 2 });
+      links.push({ source: node.id, target: sub.id, color: "#ef4444", width: 1.5 });
     });
     node.relations.associations?.forEach((assoc) => {
       if (!nodeIds.has(assoc.id)) return;
-      links.push({ source: node.id, target: assoc.id, color: "#1E90FF", width: 2 });
+      links.push({ source: node.id, target: assoc.id, color: "#6366f1", width: 1.5 });
     });
   });
 
@@ -191,46 +191,56 @@ export default function Graph() {
 
   const renderNode2D = useCallback((node, ctx, globalScale) => {
     if (typeof node.x !== "number" || typeof node.y !== "number") return;
-    const radius = node === hoverNode ? 9 : 7;
+    const isHovered = node === hoverNode;
+    const radius = isHovered ? 10 : 7;
     const fontSize = Math.max(10, 12 / globalScale);
     const label = node.name;
     const baseColor = sanitizeColor(node.color, "#8b5cf6");
 
+    // Outer glow ring
     ctx.beginPath();
-    ctx.arc(node.x, node.y, radius + 6, 0, 2 * Math.PI);
-    const glow = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, radius + 6);
-    glow.addColorStop(0, hexToRgba(baseColor, 0.42));
-    glow.addColorStop(1, hexToRgba(baseColor, 0));
-    ctx.fillStyle = glow;
+    ctx.arc(node.x, node.y, radius + 8, 0, 2 * Math.PI);
+    const outerGlow = ctx.createRadialGradient(node.x, node.y, radius, node.x, node.y, radius + 8);
+    outerGlow.addColorStop(0, hexToRgba(baseColor, 0.3));
+    outerGlow.addColorStop(1, hexToRgba(baseColor, 0));
+    ctx.fillStyle = outerGlow;
     ctx.fill();
 
+    // Node circle
     ctx.beginPath();
     ctx.arc(node.x, node.y, radius, 0, 2 * Math.PI);
-    ctx.fillStyle = nodeColor(node);
+    const nodeGrad = ctx.createRadialGradient(node.x - 2, node.y - 2, 0, node.x, node.y, radius);
+    nodeGrad.addColorStop(0, hexToRgba(baseColor, 1));
+    nodeGrad.addColorStop(1, hexToRgba(baseColor, 0.75));
+    ctx.fillStyle = isHovered ? "#c4b5fd" : nodeGrad;
     ctx.fill();
-    ctx.strokeStyle = "rgba(15,23,42,0.22)";
-    ctx.lineWidth = 1.1 / globalScale;
-    ctx.stroke();
 
-    if (globalScale > 1.3) {
+    // Subtle inner highlight
+    ctx.beginPath();
+    ctx.arc(node.x - 1.5, node.y - 1.5, radius * 0.5, 0, 2 * Math.PI);
+    ctx.fillStyle = "rgba(255,255,255,0.2)";
+    ctx.fill();
+
+    if (globalScale > 1.2) {
       ctx.font = `600 ${fontSize}px Inter, sans-serif`;
       const textWidth = ctx.measureText(label).width;
-      const x = node.x - textWidth / 2 - 5;
-      const y = node.y + radius + 4;
-      const boxHeight = fontSize + 6;
+      const x = node.x - textWidth / 2 - 6;
+      const y = node.y + radius + 6;
+      const boxHeight = fontSize + 8;
 
-      ctx.fillStyle = "rgba(255,255,255,0.96)";
+      // Dark label background
+      ctx.fillStyle = "rgba(10, 10, 15, 0.88)";
       ctx.beginPath();
-      ctx.roundRect(x, y, textWidth + 10, boxHeight, 6);
+      ctx.roundRect(x, y, textWidth + 12, boxHeight, 6);
       ctx.fill();
-      ctx.strokeStyle = "rgba(148,163,184,0.35)";
-      ctx.lineWidth = 1 / globalScale;
+      ctx.strokeStyle = "rgba(255,255,255,0.08)";
+      ctx.lineWidth = 0.8 / globalScale;
       ctx.stroke();
 
-      ctx.fillStyle = "#0f172a";
+      ctx.fillStyle = "#e2e8f0";
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
-      ctx.fillText(label, node.x, y + 3);
+      ctx.fillText(label, node.x, y + 4);
     }
   }, [hoverNode]);
 
@@ -242,7 +252,7 @@ export default function Graph() {
     <div
       ref={containerRef}
       className="w-full h-full relative overflow-hidden"
-      style={{ background: "radial-gradient(circle at 20% 10%, #eef2ff 0%, #f8fafc 52%, #ffffff 100%)" }}
+      style={{ background: "radial-gradient(ellipse at 30% 20%, rgba(139,92,246,0.06) 0%, transparent 50%), radial-gradient(ellipse at 70% 80%, rgba(6,182,212,0.04) 0%, transparent 50%), var(--bg-base)" }}
     >
       <GraphComponent
         ref={fgRef}
@@ -260,50 +270,46 @@ export default function Graph() {
         linkDirectionalArrowLength={6}
         linkDirectionalArrowRelPos={1}
         linkDirectionalParticles={2}
-        linkDirectionalParticleSpeed={0.005}
+        linkDirectionalParticleSpeed={0.004}
+        linkDirectionalParticleColor={() => "#8b5cf6"}
         onNodeClick={handleNodeClick}
         onNodeHover={setHoverNode}
         nodeRelSize={5}
         cooldownTime={1200}
       />
 
+      {/* ── Control Panel ── */}
       <div
         style={{
           position: "absolute",
-          top: "20px",
-          left: "20px",
-          width: "360px",
-          maxWidth: "calc(100% - 40px)",
-          background: "rgba(255, 255, 255, 0.95)",
-          border: "1px solid rgba(148, 163, 184, 0.3)",
-          borderRadius: "18px",
-          backdropFilter: "blur(14px)",
-          padding: "16px",
-          boxShadow: "0 12px 30px rgba(15, 23, 42, 0.12)",
+          top: "16px",
+          left: "16px",
+          width: "320px",
+          maxWidth: "calc(100% - 32px)",
+          background: "rgba(10, 10, 15, 0.85)",
+          border: "1px solid var(--border-subtle)",
+          borderRadius: "20px",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          padding: "18px",
+          boxShadow: "0 16px 48px rgba(0, 0, 0, 0.4)",
           zIndex: 20,
         }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
           <div>
-            <h3 style={{ color: "#0f172a", fontWeight: 700, fontSize: "16px", marginBottom: "2px" }}>Knowledge Graph</h3>
-            <p style={{ color: "#64748b", fontSize: "12px" }}>Explore, connect, and grow your skill network</p>
+            <h3 style={{ color: "var(--text-primary)", fontWeight: 800, fontSize: "15px", marginBottom: "2px", letterSpacing: "-0.01em" }}>Knowledge Graph</h3>
+            <p style={{ color: "var(--text-muted)", fontSize: "11px" }}>Explore & grow your skill network</p>
           </div>
           <button
             onClick={() => fgRef.current?.zoomToFit?.(800, 60)}
-            style={{
-              background: "#ffffff",
-              border: "1px solid rgba(148, 163, 184, 0.45)",
-              color: "#0f172a",
-              borderRadius: "999px",
-              padding: "6px 10px",
-              fontSize: "12px",
-              cursor: "pointer",
-            }}
+            className="graph-soft-pill"
+            style={{ cursor: "pointer" }}
           >
             Fit
           </button>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px", marginBottom: "12px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px", marginBottom: "14px" }}>
           <div className="graph-stat-tile"><strong>{graphData.nodes.length}</strong><span>Nodes</span></div>
           <div className="graph-stat-tile"><strong>{graphData.links.length}</strong><span>Links</span></div>
           <div className="graph-stat-tile"><strong>{is3D ? "3D" : "2D"}</strong><span>Mode</span></div>
@@ -313,70 +319,74 @@ export default function Graph() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleFocusBySearch()}
-            placeholder="Find node by name..."
+            placeholder="Search nodes..."
             className="skillmap-input"
             style={{ padding: "10px 12px", fontSize: "13px" }}
           />
           <button onClick={handleFocusBySearch} className="graph-action-btn">Go</button>
         </div>
         {searchTerm && (
-          <p style={{ color: "#64748b", fontSize: "12px", marginBottom: "8px" }}>
+          <p style={{ color: "var(--text-muted)", fontSize: "11px", marginBottom: "8px" }}>
             {filteredMatches.length > 0 ? `${filteredMatches.length} match(es)` : "No matches"}
           </p>
         )}
         <div style={{ display: "flex", gap: "8px" }}>
-          <button onClick={() => setIs3D((prev) => !prev)} className="graph-action-btn">
-            {is3D ? "Switch to 2D" : "Switch to 3D"}
+          <button onClick={() => setIs3D((prev) => !prev)} className="graph-action-btn" style={{ flex: 1 }}>
+            {is3D ? "⬡ Switch 2D" : "◇ Switch 3D"}
           </button>
-          <button onClick={() => setShowAddDialog(true)} className="graph-action-btn graph-action-btn-primary">
-            Add Skill
+          <button onClick={() => setShowAddDialog(true)} className="graph-action-btn graph-action-btn-primary" style={{ flex: 1 }}>
+            + Add Skill
           </button>
         </div>
       </div>
 
+      {/* ── Tips Panel ── */}
       <div
         style={{
           position: "absolute",
-          right: "20px",
-          top: "20px",
-          background: "rgba(255, 255, 255, 0.96)",
-          border: "1px solid rgba(148, 163, 184, 0.35)",
+          right: "16px",
+          top: "16px",
+          background: "rgba(10, 10, 15, 0.8)",
+          border: "1px solid var(--border-subtle)",
           borderRadius: "14px",
-          padding: "10px 12px",
+          padding: "12px 14px",
           zIndex: 20,
-          color: "#334155",
+          color: "var(--text-muted)",
           fontSize: "12px",
-          maxWidth: "240px",
+          maxWidth: "200px",
+          backdropFilter: "blur(12px)",
         }}
       >
-        <p style={{ marginBottom: "4px", fontWeight: 600 }}>Flow tips</p>
-        <p>Drag to pan, scroll to zoom, click a node to open full details.</p>
+        <p style={{ marginBottom: "4px", fontWeight: 700, color: "var(--text-secondary)" }}>Flow tips</p>
+        <p style={{ lineHeight: 1.5 }}>Drag to pan, scroll to zoom, click a node to inspect.</p>
       </div>
 
+      {/* ── Hover Preview ── */}
       {hoverNode && (
         <div
           className="animate-fade-in"
           style={{
             position: "absolute",
-            left: "20px",
-            bottom: "20px",
+            left: "16px",
+            bottom: "16px",
             zIndex: 20,
-            width: "320px",
-            maxWidth: "calc(100% - 40px)",
-            background: "rgba(255, 255, 255, 0.96)",
-            border: "1px solid rgba(129, 140, 248, 0.45)",
-            borderRadius: "14px",
-            padding: "12px",
-            backdropFilter: "blur(10px)",
+            width: "300px",
+            maxWidth: "calc(100% - 32px)",
+            background: "rgba(10, 10, 15, 0.92)",
+            border: "1px solid var(--border-accent)",
+            borderRadius: "16px",
+            padding: "16px",
+            backdropFilter: "blur(16px)",
+            boxShadow: "0 12px 40px rgba(0,0,0,0.4), 0 0 20px rgba(139,92,246,0.08)",
           }}
         >
-          <p style={{ color: "#0f172a", fontWeight: 700, marginBottom: "4px" }}>{hoverNode.name}</p>
-          <p style={{ color: "#64748b", fontSize: "12px", marginBottom: "8px" }}>
+          <p style={{ color: "var(--text-primary)", fontWeight: 700, marginBottom: "6px", fontSize: "14px" }}>{hoverNode.name}</p>
+          <p style={{ color: "var(--text-muted)", fontSize: "12px", marginBottom: "10px", lineHeight: "1.5" }}>
             {hoverNode.description || "No description available yet."}
           </p>
-          <div style={{ display: "flex", justifyContent: "space-between", color: "#334155", fontSize: "12px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", color: "var(--text-muted)", fontSize: "11px" }}>
             <span>Connections: {getConnectedCount(hoverNode.id)}</span>
-            <span>ID: {String(hoverNode.id).slice(0, 18)}</span>
+            <span style={{ opacity: 0.6 }}>ID: {String(hoverNode.id).slice(0, 16)}</span>
           </div>
         </div>
       )}

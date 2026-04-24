@@ -40,10 +40,19 @@ export default function SkillMapInput({ onSubmit, loading, hasResults }) {
 
   const isValid = goal.trim() && knownSkills.trim() && timeAvailable.trim();
 
+  const labelStyle = (field) => ({
+    display: "block",
+    fontSize: "12px",
+    fontWeight: "700",
+    color: focused === field ? "var(--color-primary-light)" : "var(--text-muted)",
+    marginBottom: "8px",
+    letterSpacing: "0.04em",
+    textTransform: "uppercase",
+    transition: "color 0.3s",
+  });
+
   return (
-    <div
-      className="animate-fade-in-up stagger-4"
-    >
+    <div className="animate-fade-in-up stagger-4">
       {/* Header */}
       <div style={{ marginBottom: "28px" }}>
         <h2
@@ -58,26 +67,14 @@ export default function SkillMapInput({ onSubmit, loading, hasResults }) {
           Tell us about your learning goal
         </h2>
         <p style={{ fontSize: "14px", color: "var(--text-muted)" }}>
-          Be specific - the more detail you give, the better your SkillMap.
+          Be specific — the more detail you give, the better your SkillMap.
         </p>
       </div>
 
       <form onSubmit={handleSubmit} id="skillmap-form">
         {/* Goal field */}
         <div style={{ marginBottom: "20px" }}>
-          <label
-            htmlFor="goal-input"
-            style={{
-              display: "block",
-              fontSize: "13px",
-              fontWeight: "600",
-              color: focused === "goal" ? "var(--color-primary-light)" : "var(--text-secondary)",
-              marginBottom: "8px",
-              letterSpacing: "0.02em",
-              textTransform: "uppercase",
-              transition: "color 0.2s",
-            }}
-          >
+          <label htmlFor="goal-input" style={labelStyle("goal")}>
             Your Goal
           </label>
           <input
@@ -96,19 +93,7 @@ export default function SkillMapInput({ onSubmit, loading, hasResults }) {
 
         {/* Known skills field */}
         <div style={{ marginBottom: "20px" }}>
-          <label
-            htmlFor="known-skills-input"
-            style={{
-              display: "block",
-              fontSize: "13px",
-              fontWeight: "600",
-              color: focused === "known" ? "var(--color-primary-light)" : "var(--text-secondary)",
-              marginBottom: "8px",
-              letterSpacing: "0.02em",
-              textTransform: "uppercase",
-              transition: "color 0.2s",
-            }}
-          >
+          <label htmlFor="known-skills-input" style={labelStyle("known")}>
             What You Already Know
           </label>
           <textarea
@@ -126,19 +111,7 @@ export default function SkillMapInput({ onSubmit, loading, hasResults }) {
 
         {/* Time field */}
         <div style={{ marginBottom: "28px" }}>
-          <label
-            htmlFor="time-input"
-            style={{
-              display: "block",
-              fontSize: "13px",
-              fontWeight: "600",
-              color: focused === "time" ? "var(--color-primary-light)" : "var(--text-secondary)",
-              marginBottom: "8px",
-              letterSpacing: "0.02em",
-              textTransform: "uppercase",
-              transition: "color 0.2s",
-            }}
-          >
+          <label htmlFor="time-input" style={labelStyle("time")}>
             Time Available Per Day
           </label>
           <input
@@ -161,7 +134,7 @@ export default function SkillMapInput({ onSubmit, loading, hasResults }) {
           id="skillmap-submit-btn"
           className="btn-primary"
           disabled={!isValid || loading}
-          style={{ width: "100%", fontSize: "16px", padding: "16px", borderRadius: "12px" }}
+          style={{ width: "100%", fontSize: "15px", padding: "16px", borderRadius: "14px" }}
         >
           {loading ? (
             <>
@@ -170,7 +143,7 @@ export default function SkillMapInput({ onSubmit, loading, hasResults }) {
                   width: "18px",
                   height: "18px",
                   borderRadius: "50%",
-                  border: "2px solid rgba(255,255,255,0.3)",
+                  border: "2px solid rgba(255,255,255,0.25)",
                   borderTopColor: "#fff",
                   display: "inline-block",
                 }}
@@ -179,7 +152,7 @@ export default function SkillMapInput({ onSubmit, loading, hasResults }) {
               Analyzing your skill gap...
             </>
           ) : (
-            <>Generate My Skill Map</>
+            <>✨ Generate My Skill Map</>
           )}
         </button>
       </form>
@@ -189,10 +162,11 @@ export default function SkillMapInput({ onSubmit, loading, hasResults }) {
         <div style={{ marginTop: "20px" }}>
           <p
             style={{
-              fontSize: "12px",
+              fontSize: "11px",
               color: "var(--text-muted)",
               marginBottom: "10px",
               textAlign: "center",
+              letterSpacing: "0.02em",
             }}
           >
             Try an example:
@@ -204,26 +178,26 @@ export default function SkillMapInput({ onSubmit, loading, hasResults }) {
                 onClick={() => applyExample(ex)}
                 disabled={loading}
                 style={{
-                  background: "#ffffff",
-                  border: "1px solid #dbe2ea",
+                  background: "rgba(255, 255, 255, 0.04)",
+                  border: "1px solid var(--border-subtle)",
                   borderRadius: "999px",
-                  padding: "7px 14px",
+                  padding: "7px 16px",
                   fontSize: "12px",
-                  color: "#334155",
+                  color: "var(--text-secondary)",
                   cursor: "pointer",
-                  transition: "all 0.2s",
+                  transition: "all 0.25s",
                   fontFamily: "inherit",
                   fontWeight: 600,
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "#818cf8";
-                  e.currentTarget.style.background = "#eef2ff";
-                  e.currentTarget.style.color = "#4f46e5";
+                  e.currentTarget.style.borderColor = "var(--border-accent)";
+                  e.currentTarget.style.background = "rgba(139, 92, 246, 0.08)";
+                  e.currentTarget.style.color = "var(--color-primary-light)";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "#dbe2ea";
-                  e.currentTarget.style.background = "#ffffff";
-                  e.currentTarget.style.color = "#334155";
+                  e.currentTarget.style.borderColor = "var(--border-subtle)";
+                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.04)";
+                  e.currentTarget.style.color = "var(--text-secondary)";
                 }}
               >
                 {ex.goal}

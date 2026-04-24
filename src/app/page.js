@@ -171,54 +171,55 @@ export default function HomePage() {
     setActiveTab("graph");
   };
 
-  const tabStyle = (tab) => ({
-    padding: "16px 28px",
-    border: "none",
-    borderBottom: activeTab === tab ? "2px solid #8b5cf6" : "2px solid transparent",
-    backgroundColor: "transparent",
-    fontWeight: activeTab === tab ? "700" : "500",
-    color: activeTab === tab ? "#0f172a" : "#64748b",
-    cursor: "pointer",
-    fontSize: "14px",
-    letterSpacing: "0.02em",
-    transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    background: activeTab === tab ? "#eef2ff" : "transparent",
-  });
-
   return (
-    <div style={{ display: "flex", flexDirection: "column", width: "100vw", height: "100vh", backgroundColor: "#f8fafc", color: "#0f172a" }}>
+    <div style={{ display: "flex", flexDirection: "column", width: "100vw", height: "100vh", backgroundColor: "var(--bg-base)", color: "var(--text-primary)", position: "relative", zIndex: 1 }}>
 
       {/* ── NAV BAR ── */}
       <nav style={{
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        borderBottom: "1px solid rgba(15, 23, 42, 0.08)",
-        backgroundColor: "rgba(255, 255, 255, 0.92)",
-        backdropFilter: "blur(20px)",
-        padding: "0 40px",
-        height: "64px",
+        borderBottom: "1px solid var(--border-subtle)",
+        backgroundColor: "rgba(10, 10, 15, 0.8)",
+        backdropFilter: "blur(24px)",
+        WebkitBackdropFilter: "blur(24px)",
+        padding: "0 32px",
+        height: "60px",
         flexShrink: 0,
         zIndex: 100,
         position: "sticky",
         top: 0
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <span style={{ fontSize: "24px" }}>🧭</span>
-          <span style={{ fontWeight: "900", fontSize: "20px", letterSpacing: "-0.02em", background: "linear-gradient(to right, #0f172a, #6366f1)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div style={{
+            width: "32px", height: "32px", borderRadius: "10px",
+            background: "linear-gradient(135deg, var(--color-primary) 0%, #6366f1 100%)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: "16px", boxShadow: "0 0 20px rgba(139, 92, 246, 0.3)"
+          }}>
+            🧭
+          </div>
+          <span style={{
+            fontWeight: "800", fontSize: "18px", letterSpacing: "-0.03em",
+            background: "linear-gradient(135deg, #c084fc, #818cf8)",
+            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent"
+          }}>
             SkillGraph
           </span>
         </div>
 
-        <div style={{ display: "flex", gap: "8px", height: "100%" }}>
-          <button style={tabStyle("graph")} onClick={() => setActiveTab("graph")}>
-            <span>📊</span> Dashboard
+        <div style={{ display: "flex", gap: "4px", height: "100%", alignItems: "center" }}>
+          <button
+            className={`nav-tab ${activeTab === "graph" ? "active" : ""}`}
+            onClick={() => setActiveTab("graph")}
+          >
+            <span style={{ fontSize: "16px" }}>📊</span> Dashboard
           </button>
-          <button style={tabStyle("skillmap")} onClick={() => setActiveTab("skillmap")}>
-            <span>⚡</span> Gap Analyzer
+          <button
+            className={`nav-tab ${activeTab === "skillmap" ? "active" : ""}`}
+            onClick={() => setActiveTab("skillmap")}
+          >
+            <span style={{ fontSize: "16px" }}>⚡</span> Gap Analyzer
           </button>
         </div>
 
@@ -234,56 +235,74 @@ export default function HomePage() {
 
       {/* ── SKILL MAP (AI) TAB ── */}
       {activeTab === "skillmap" && (
-        <div style={{ flex: 1, overflowY: "auto", backgroundColor: "#f8fafc", backgroundImage: "radial-gradient(circle at 50% -20%, #eef2ff, #f8fafc)" }}>
-          <header style={{ textAlign: "center", padding: "80px 24px 60px", maxWidth: "800px", margin: "0 auto" }}>
-            <h1 className="gradient-text" style={{ fontSize: "clamp(40px, 8vw, 72px)", fontWeight: "900", lineHeight: "1.1", marginBottom: "20px", letterSpacing: "-0.03em" }}>
+        <div style={{ flex: 1, overflowY: "auto", position: "relative" }}>
+          <header style={{ textAlign: "center", padding: "80px 24px 60px", maxWidth: "800px", margin: "0 auto", position: "relative" }}>
+            <div style={{
+              position: "absolute", top: "30px", left: "50%", transform: "translateX(-50%)",
+              width: "200px", height: "200px", borderRadius: "50%",
+              background: "radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, transparent 70%)",
+              filter: "blur(40px)", pointerEvents: "none"
+            }} />
+            <h1 className="gradient-text" style={{ fontSize: "clamp(36px, 7vw, 64px)", fontWeight: "900", lineHeight: "1.08", marginBottom: "20px", letterSpacing: "-0.04em", position: "relative" }}>
               Skill Gap Analyzer
             </h1>
-            <p style={{ color: "#475569", fontSize: "18px", lineHeight: "1.6", maxWidth: "600px", margin: "0 auto" }}>
+            <p style={{ color: "var(--text-secondary)", fontSize: "17px", lineHeight: "1.7", maxWidth: "540px", margin: "0 auto" }}>
               Tell us your goal and what you already know — we&apos;ll find the exact skills you&apos;re missing to bridge the gap.
             </p>
           </header>
 
-          <section style={{ maxWidth: "700px", margin: "0 auto", padding: "0 24px 64px" }}>
-            <div className="glass-card-strong" style={{ padding: "32px", border: "1px solid rgba(139, 92, 246, 0.2)" }}>
+          <section style={{ maxWidth: "680px", margin: "0 auto", padding: "0 24px 64px" }}>
+            <div className="glass-card-strong" style={{ padding: "32px" }}>
               <SkillMapInput onSubmit={handleAnalyze} loading={loading} hasResults={!!results} />
             </div>
           </section>
 
           {error && (
-            <div style={{ maxWidth: "700px", margin: "0 auto 32px", padding: "0 24px" }}>
-              <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: "12px", padding: "16px 20px", color: "#b91c1c", display: "flex", gap: "12px", alignItems: "center" }}>
-                <span style={{ fontSize: "20px" }}>⚠️</span>
-                <span style={{ fontWeight: "500" }}>{error}</span>
+            <div style={{ maxWidth: "680px", margin: "0 auto 32px", padding: "0 24px" }}>
+              <div style={{
+                background: "rgba(239, 68, 68, 0.08)", border: "1px solid rgba(239, 68, 68, 0.25)",
+                borderRadius: "14px", padding: "16px 20px", color: "#fca5a5",
+                display: "flex", gap: "12px", alignItems: "center", backdropFilter: "blur(8px)"
+              }}>
+                <span style={{ fontSize: "18px" }}>⚠️</span>
+                <span style={{ fontWeight: "500", fontSize: "14px" }}>{error}</span>
               </div>
             </div>
           )}
 
           {loading && (
-            <div style={{ textAlign: "center", padding: "80px 24px", color: "#64748b" }}>
-              <div className="animate-spin" style={{ fontSize: "48px", marginBottom: "24px", display: "inline-block" }}>⚙️</div>
-              <p style={{ fontSize: "18px", fontWeight: "500", letterSpacing: "0.02em" }}>Analyzing your path with Gemini AI...</p>
+            <div style={{ textAlign: "center", padding: "80px 24px", color: "var(--text-muted)" }}>
+              <div style={{
+                width: "48px", height: "48px", margin: "0 auto 24px",
+                borderRadius: "50%", border: "3px solid rgba(139, 92, 246, 0.15)",
+                borderTopColor: "var(--color-primary)",
+              }} className="animate-spin" />
+              <p style={{ fontSize: "16px", fontWeight: "500", letterSpacing: "0.02em", color: "var(--text-secondary)" }}>Analyzing your path with Gemini AI...</p>
             </div>
           )}
 
           {results && !loading && (
-            <div className="animate-fade-in" style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 24px 120px" }}>
+            <div className="animate-fade-in" style={{ maxWidth: "1100px", margin: "0 auto", padding: "0 24px 120px" }}>
               
               {/* Summary Hero */}
-              <div className="glass-card" style={{ padding: "40px", marginBottom: "64px", position: "relative", overflow: "hidden", background: "#ffffff" }}>
-                <div style={{ position: "absolute", top: 0, left: 0, width: "4px", height: "100%", background: "var(--color-primary)" }} />
-                <h2 style={{ fontSize: "24px", fontWeight: "800", color: "#0f172a", marginBottom: "16px", display: "flex", alignItems: "center", gap: "12px" }}>
-                  <span style={{ fontSize: "28px" }}>📝</span> The Analysis
+              <div className="glass-card-strong" style={{ padding: "36px", marginBottom: "56px", position: "relative", overflow: "hidden" }}>
+                <div style={{
+                  position: "absolute", top: 0, left: 0, width: "3px", height: "100%",
+                  background: "linear-gradient(180deg, var(--color-primary), var(--color-cyan))",
+                  borderRadius: "0 2px 2px 0"
+                }} />
+                <h2 style={{ fontSize: "22px", fontWeight: "800", color: "var(--text-primary)", marginBottom: "14px", display: "flex", alignItems: "center", gap: "12px" }}>
+                  <span style={{ fontSize: "24px" }}>📝</span> The Analysis
                 </h2>
-                <p style={{ fontSize: "18px", lineHeight: "1.7", color: "#334155", fontWeight: "400" }}>
+                <p style={{ fontSize: "16px", lineHeight: "1.8", color: "var(--text-secondary)", fontWeight: "400" }}>
                   {results.summary}
                 </p>
                 
-                <div style={{ display: "flex", justifyContent: "flex-start", marginTop: "32px" }}>
+                <div style={{ display: "flex", justifyContent: "flex-start", marginTop: "28px" }}>
                   <button
                     onClick={handleImportToGraph}
                     className="btn-primary"
-                    style={{ background: "linear-gradient(135deg, #238636 0%, #2ea043 100%)", boxShadow: "0 4px 20px rgba(46, 160, 67, 0.3)" }}
+                    style={{ background: "linear-gradient(135deg, #059669 0%, #10b981 100%)", boxShadow: "0 4px 24px rgba(16, 185, 129, 0.3)" }}
                   >
                     📥 Import Skills to Main Graph
                   </button>
@@ -291,12 +310,12 @@ export default function HomePage() {
               </div>
 
               {/* Grid Section */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "64px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "56px" }}>
                 
                 {/* 1. Chain */}
                 <section>
                   <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "24px" }}>
-                    <span style={{ fontSize: "24px" }}>🔗</span>
+                    <span style={{ fontSize: "22px" }}>🔗</span>
                     <h2 className="section-title">Dependency Chain</h2>
                   </div>
                   <SkillGapChain
@@ -308,7 +327,7 @@ export default function HomePage() {
                 {/* 2. Graph */}
                 <section>
                   <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "24px" }}>
-                    <span style={{ fontSize: "24px" }}>🕸️</span>
+                    <span style={{ fontSize: "22px" }}>🕸️</span>
                     <h2 className="section-title">Visual Map</h2>
                   </div>
                   <SkillMapGraph
@@ -320,19 +339,24 @@ export default function HomePage() {
                 {/* 3. Learning Plan */}
                 <section>
                   <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "24px" }}>
-                    <span style={{ fontSize: "24px" }}>📅</span>
+                    <span style={{ fontSize: "22px" }}>📅</span>
                     <h2 className="section-title">7-Day Learning Plan</h2>
                   </div>
                   <LearningPlan days={results.learningPlan || []} />
                 </section>
               </div>
 
-              <div style={{ textAlign: "center", marginTop: "100px", paddingTop: "60px", borderTop: "1px solid rgba(15,23,42,0.08)" }}>
+              <div style={{ textAlign: "center", marginTop: "80px", paddingTop: "48px", borderTop: "1px solid var(--border-subtle)" }}>
                 <button
                   onClick={() => { setResults(null); setError(null); }}
-                  style={{ background: "transparent", color: "#475569", border: "1px solid #cbd5e1", padding: "12px 32px", borderRadius: "99px", cursor: "pointer", fontWeight: "600", transition: "all 0.2s" }}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = "#64748b"}
-                  onMouseLeave={e => e.currentTarget.style.borderColor = "#cbd5e1"}
+                  style={{
+                    background: "transparent", color: "var(--text-muted)",
+                    border: "1px solid var(--border-subtle)", padding: "12px 32px",
+                    borderRadius: "99px", cursor: "pointer", fontWeight: "600",
+                    transition: "all 0.3s", fontFamily: "inherit", fontSize: "14px"
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--border-accent)"; e.currentTarget.style.color = "var(--color-primary-light)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border-subtle)"; e.currentTarget.style.color = "var(--text-muted)"; }}
                 >
                   🔄 Reset and Try Another Goal
                 </button>
