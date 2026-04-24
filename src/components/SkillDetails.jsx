@@ -1,11 +1,8 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 
 export default function SkillDetails({ node, onEdit, onDelete, onClose }) {
-  const handleDelete = () => {
-    const confirmDelete = window.confirm("Delete this skill?");
-    if (confirmDelete) onDelete(node.id);
-  };
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const { parentclasses = [], subclasses = [], associations = [] } =
     node.relations || {};
@@ -26,9 +23,7 @@ export default function SkillDetails({ node, onEdit, onDelete, onClose }) {
           <b>Links:</b>
           {node.links.map((link, i) => (
             <div key={i}>
-              <a href={link} target="_blank" rel="noreferrer">
-                {link}
-              </a>
+              <a href={link} target="_blank" rel="noreferrer">{link}</a>
             </div>
           ))}
         </>
@@ -46,72 +41,101 @@ export default function SkillDetails({ node, onEdit, onDelete, onClose }) {
           background: "#eee",
         }}
       >
-
         <b>Relations</b>
 
         <div>
           <p><b>Parents:</b></p>
-        
-          {parentclasses.length > 0 ? (
-            parentclasses.map(p => (
-              <div key={p.id}>{p.name || p.id}</div>
-            ))
-          ) : (
-            <div>-</div>
-          )}
+          {parentclasses.length > 0
+            ? parentclasses.map(p => <div key={p.id}>{p.name || p.id}</div>)
+            : <div>-</div>
+          }
         </div>
 
         <div>
           <p><b>Subclasses:</b></p>
-
-          {subclasses.length > 0 ? (
-            subclasses.map(p => (
-              <div key={p.id}>{p.name || p.id}</div>
-            ))
-          ) : (
-            <div>-</div>
-          )}
+          {subclasses.length > 0
+            ? subclasses.map(p => <div key={p.id}>{p.name || p.id}</div>)
+            : <div>-</div>
+          }
         </div>
 
         <div>
           <p><b>Associations:</b></p>
-          {associations.map((a, i) => (
-            <div key={i}>
-              {a.name || a.id}
-              {a.type && (
-                <span style={{ marginLeft: "6px", color: "#6b7280" }}>
-                  ({a.type})
-                </span>
-              )}
-            </div>
-          ))}
+          {associations.length > 0
+            ? associations.map((a, i) => (
+                <div key={i}>
+                  {a.name || a.id}
+                  {a.type && (
+                    <span style={{ marginLeft: "6px", color: "#6b7280" }}>({a.type})</span>
+                  )}
+                </div>
+              ))
+            : <div>-</div>
+          }
         </div>
       </div>
 
       {/* ACTIONS */}
-      <div style={{ marginTop: "12px", display: "flex", gap: "8px" }}>
+      <div style={{ marginTop: "12px", display: "flex", gap: "8px", alignItems: "center" }}>
         <button onClick={onEdit}>Edit</button>
 
-        <button
-          onClick={handleDelete}
-          style={{
-              padding:"6px 12px",
-              backgroundColor:"#374151",
-              border:"none",
-              borderRadius:"4px",
-              color: "white"}}
-        >
-          Delete
-        </button>
+        {confirmingDelete ? (
+          <>
+            <span style={{ fontSize: "14px", color: "#374151" }}>Are you sure?</span>
+            <button
+              onClick={() => onDelete(node.id)}
+              style={{
+                padding: "6px 12px",
+                backgroundColor: "#dc2626",
+                border: "none",
+                borderRadius: "4px",
+                color: "white",
+                cursor: "pointer"
+              }}
+            >
+              Yes, Delete
+            </button>
+            <button
+              onClick={() => setConfirmingDelete(false)}
+              style={{
+                padding: "6px 12px",
+                backgroundColor: "#ccc",
+                border: "none",
+                borderRadius: "4px",
+                cursor: "pointer"
+              }}
+            >
+              Cancel
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={() => setConfirmingDelete(true)}
+            style={{
+              padding: "6px 12px",
+              backgroundColor: "#374151",
+              border: "none",
+              borderRadius: "4px",
+              color: "white",
+              cursor: "pointer"
+            }}
+          >
+            Delete
+          </button>
+        )}
 
-        <button onClick={onClose}
-        style={{marginRight:"5px",
-              padding:"6px 12px",
-              backgroundColor:"#ccc",
-              border:"none",
-              borderRadius:"4px"}}
+        <button
+          onClick={onClose}
+          style={{
+            marginRight: "5px",
+            padding: "6px 12px",
+            backgroundColor: "#ccc",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer"
+          }}
         >
-        Close
+          Close
         </button>
       </div>
     </>

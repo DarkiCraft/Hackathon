@@ -2,9 +2,13 @@ import { NextResponse } from "next/server";
 import { deleteSkill } from "@/lib/delete-skills";
 import { skills } from "@/lib/skillsDb";
 
-export async function DELETE(request, { params }) {
-  const resolvedParams = await params;
-  const { id } = resolvedParams;
+export async function DELETE(request) {
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get("id");
+
+  if (!id) {
+    return NextResponse.json({ success: false, message: "Missing id" }, { status: 400 });
+  }
 
   const result = deleteSkill(id, skills);
 
