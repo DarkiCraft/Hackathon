@@ -35,84 +35,93 @@ function colorWithAlpha(color, alpha, fallback = "#8b5cf6") {
  *   - Purple (#8b5cf6) = goal node (center)
  */
 function buildGraphData(missingSkills, knownSkills) {
+  const nodes = [];
+  const links = [];
+  const nodeIds = new Set();
+
   const toNodeId = (skill, idx, prefix) => {
     if (skill?.id && String(skill.id).trim()) return String(skill.id);
     const slug = String(skill?.name || `${prefix}-${idx}`)
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "");
+      .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
     return `${prefix}-${slug || idx}`;
   };
 
-  const nodes = [];
-  const links = [];
+  // Goal node
+  nodes.push({ id: "__goal__", name: "Your Goal", type: "goal", color: "#8b5cf6", size: 12 });
+  nodeIds.add("__goal__");
 
-  // Goal node (central)
-  nodes.push({
-    id: "__goal__",
-    name: "Your Goal",
-    type: "goal",
-    color: "#8b5cf6",
-    size: 12,
-  });
-
-  // Known skill nodes
+  // Add all known skill nodes
   knownSkills.forEach((skill, i) => {
-    const knownId = toNodeId(skill, i, "known");
-    nodes.push({
-      id: knownId,
-      name: skill.name,
-      type: "known",
-      color: "#10b981",
-      size: 7,
-    });
-  });
-
-  // Missing skill nodes + dependency chain links
-  missingSkills.forEach((skill, i) => {
-    const currentId = toNodeId(skill, i, "missing");
-    nodes.push({
-      id: currentId,
-      name: skill.name,
-      why: skill.why,
-      type: "missing",
-      color: "#ef4444",
-      size: 8,
-      order: skill.order || i + 1,
-    });
-
-    // Chain: each missing skill links to next prerequisite
-    if (i < missingSkills.length - 1) {
-      const nextId = toNodeId(missingSkills[i + 1], i + 1, "missing");
-      links.push({
-        source: currentId,
-        target: nextId,
-        color: "#ef4444",
-      });
+    const id = toNodeId(skill, i, "known");
+    if (!nodeIds.has(id)) {
+      nodes.push({ id, name: skill.name, type: "known", color: "#10b981", size: 7 });
+      nodeIds.add(id);
     }
   });
 
-  // Last missing skill links to goal
-  if (missingSkills.length > 0) {
-    links.push({
-      source: toNodeId(missingSkills[missingSkills.length - 1], missingSkills.length - 1, "missing"),
-      target: "__goal__",
-      color: "#8b5cf6",
-    });
-  }
+  // Add all missing skill nodes
+  const sortedMissing = [...missingSkills].sort((a, b) => (a.order || 0) - (b.order || 0));
+  sortedMissing.forEach((skill, i) => {
+    const id = toNodeId(skill, i, "missing");
+    if (!nodeIds.has(id)) {
+      nodes.push({ id, name: skill.name, why: skill.why, type: "missing", color: "#ef4444", size: 8, order: skill.order || i + 1 });
+      nodeIds.add(id);
+    }
+  });
 
-  // Known skills link to goal
-  knownSkills.forEach((skill, i) => {
-    links.push({
-      source: toNodeId(skill, i, "known"),
-      target: "__goal__",
-      color: "#10b981",
+  // Build a name→id lookup for edge resolution
+  const nameToId = {};
+  nodes.forEach(n => { nameToId[n.name?.toLowerCase()] = n.id; });
+
+  // ── EDGES FROM KG needs[] ──────────────────────────────────────
+  // Each skill carries its needs array from the KG via the API response
+  const allSkills = [...knownSkills, ...sortedMissing];
+  allSkills.forEach((skill, i) => {
+    const prefix = knownSkills.includes(skill) ? "known" : "missing";
+    const sourceId = toNodeId(skill, i, prefix);
+
+    (skill.needs || []).forEach(prereqId => {
+      // prereqId could be a KG id string like "color_theory"
+      // Try to find it in our current node set
+      const targetId = prereqId;
+      if (nodeIds.has(targetId)) {
+        links.push({
+          source: targetId,   // prerequisite points TO the skill that needs it
+          target: sourceId,
+          color: "rgba(148,163,184,0.35)",
+        });
+      }
     });
+  });
+
+  // ── FINAL CONNECTIONS TO GOAL ──────────────────────────────────
+  // The highest-order missing skills (no other missing skill depends on them) → goal
+  const missingIdsPointedTo = new Set(
+    links.filter(l => sortedMissing.some(s => s.id === l.target))
+         .map(l => l.target)
+  );
+  sortedMissing.forEach((skill) => {
+    const isLeaf = !links.some(l => l.source === skill.id &&
+      sortedMissing.some(s => s.id === l.target));
+    if (isLeaf) {
+      links.push({ source: skill.id, target: "__goal__", color: "#8b5cf6" });
+    }
+  });
+
+  // Known skills connect to the deepest missing prerequisite they unlock
+  // (or goal if no missing skills)
+  const deepestMissingId = sortedMissing.length > 0 ? sortedMissing[0].id : "__goal__";
+  knownSkills.forEach((skill, i) => {
+    const id = toNodeId(skill, i, "known");
+    // Only connect if not already connected via needs[]
+    const alreadyConnected = links.some(l => l.source === id || l.target === id);
+    if (!alreadyConnected) {
+      links.push({ source: id, target: deepestMissingId, color: "#10b981" });
+    }
   });
 
   return { nodes, links };
 }
-
 // Legend item
 function LegendDot({ color, label }) {
   return (

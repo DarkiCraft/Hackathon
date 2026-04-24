@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import dynamic from "next/dynamic";
+import { savePath, loadPaths, deletePath } from "@/lib/pathStore";
 
 // Force graph requires window — disable SSR
 const Graph = dynamic(() => import("@/components/Graph"), { ssr: false });
@@ -9,7 +10,10 @@ const Graph = dynamic(() => import("@/components/Graph"), { ssr: false });
 // SkillMap components (from skillmap-mvp branch)
 import SkillMapInput from "@/components/SkillMapInput";
 import SkillGapChain from "@/components/SkillGapChain";
-const SkillMapGraph = dynamic(() => import("@/components/SkillMapGraph"), { ssr: false });
+const SkillMapGraph = dynamic(
+  () => import("@/components/SkillMapGraph").then(mod => mod.default),
+  { ssr: false }
+);
 import LearningPlan from "@/components/LearningPlan";
 import { addSkill } from "@/lib/skillStore";
 
@@ -21,6 +25,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [formData, setFormData] = useState(null);
+  const [savedPaths, setSavedPaths] = useState([]);
 
   // Load persisted state only on client after mount to avoid hydration mismatch
   React.useEffect(() => {
@@ -28,6 +33,7 @@ export default function HomePage() {
       const savedTab = localStorage.getItem("skillgraph_tab");
       const savedResults = localStorage.getItem("skillmap_results");
       const savedForm = localStorage.getItem("skillmap_form");
+      setSavedPaths(loadPaths());
 
       if (savedTab) setActiveTab(savedTab);
       if (savedResults) setResults(JSON.parse(savedResults));
@@ -52,124 +58,39 @@ export default function HomePage() {
     else localStorage.removeItem("skillmap_form");
   }, [formData]);
 
-  const handleAnalyze = async ({ goal, knownSkills, timeAvailable }) => {
-    setLoading(true);
-    setError(null);
-    setResults(null);
-    setFormData({ goal, knownSkills, timeAvailable });
-    try {
-      const res = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ goal, knownSkills, timeAvailable }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to generate skill map");
-      setResults(data);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleImportToGraph = async () => {
-    if (!results) return;
-    const { missingSkills, knownSkills } = results;
-    const goalTitle = formData?.goal || "My Goal";
-    const goalId = `goal_${goalTitle.toLowerCase().replace(/\s+/g, "_")}`;
-    let addedCount = 0;
-
-    setLoading(true); // Reuse loading state for the import process
-
-    // Helper to fetch best ESCO match
-    const getEscoMatch = async (name) => {
-      try {
-        const res = await fetch(`/api/search-skill?name=${encodeURIComponent(name)}`);
-        const data = await res.json();
-        if (data && data.length > 0) {
-          const best = data[0];
-          // Get full details for the best match
-          const detailRes = await fetch(`/api/skill-details?qid=${encodeURIComponent(best.qid)}`);
-          return await detailRes.json();
-        }
-      } catch (e) {
-        console.error("ESCO lookup failed for:", name, e);
-      }
-      return null;
+ const handleAnalyze = async ({ goal, knownSkills, timeAvailable }) => {
+  setLoading(true);
+  setError(null);
+  setResults(null);
+  setFormData({ goal, knownSkills, timeAvailable });
+  try {
+    const res = await fetch("/api/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ goal, knownSkills, timeAvailable }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to generate skill map");
+    
+    // Auto-save the path
+    const path = {
+      id: `path_${Date.now()}`,
+      goal,
+      knownSkills: data.knownSkills || [],
+      missingSkills: data.missingSkills || [],
+      learningPlan: data.learningPlan || [],
+      summary: data.summary || "",
+      savedAt: new Date().toISOString(),
     };
-
-    // 1. Add Goal Node
-    const goalPayload = {
-      id: goalId,
-      name: `🎯 Goal: ${goalTitle}`,
-      description: "Target goal for this analysis.",
-      color: "#8b5cf6",
-      relations: { parentclasses: [], subclasses: [], associations: [] }
-    };
-    if (addSkill(goalPayload).success) addedCount++;
-
-    // 2. Add Known Skills 
-    for (const skill of knownSkills) {
-      const match = await getEscoMatch(skill.name);
-      const skillPayload = {
-        id: match?.id || `ai_${skill.name.toLowerCase().replace(/\s+/g, "_")}`,
-        name: match?.name || skill.name,
-        description: match?.description || "Skill you already know.",
-        color: "#10b981",
-        relations: match?.relations || { 
-          parentclasses: [], 
-          subclasses: [{ id: goalId, name: goalPayload.name }], 
-          associations: [] 
-        }
-      };
-      // Force link to goal if not already there
-      if (!skillPayload.relations.subclasses.some(s => s.id === goalId)) {
-        skillPayload.relations.subclasses.push({ id: goalId, name: goalPayload.name });
-      }
-      if (addSkill(skillPayload).success) addedCount++;
-    }
-
-    // 3. Add Missing Skills
-    for (let i = 0; i < missingSkills.length; i++) {
-      const skill = missingSkills[i];
-      const match = await getEscoMatch(skill.name);
-      
-      const skillId = match?.id || `ai_${skill.name.toLowerCase().replace(/\s+/g, "_")}`;
-      const skillPayload = {
-        id: skillId,
-        name: match?.name || skill.name,
-        description: match?.description || skill.why,
-        color: "#ef4444",
-        relations: match?.relations || { parentclasses: [], subclasses: [], associations: [] }
-      };
-
-      // Determine next ID for connection
-      let nextId = null;
-      let nextName = null;
-      if (i < missingSkills.length - 1) {
-        // Link to next in chain (we'll assume the next one's ID pattern)
-        const nextSkill = missingSkills[i+1];
-        nextId = `ai_${nextSkill.name.toLowerCase().replace(/\s+/g, "_")}`;
-        nextName = nextSkill.name;
-      } else {
-        // Last one links to goal
-        nextId = goalId;
-        nextName = goalPayload.name;
-      }
-
-      if (nextId && !skillPayload.relations.subclasses.some(s => s.id === nextId)) {
-        skillPayload.relations.subclasses.push({ id: nextId, name: nextName });
-      }
-
-      const res = addSkill(skillPayload);
-      if (res.success) addedCount++;
-    }
-
+    savePath(path);
+    setSavedPaths(loadPaths());
+    setResults(data);
+  } catch (err) {
+    setError(err.message);
+  } finally {
     setLoading(false);
-    alert(`Successfully imported and validated ${addedCount} nodes from ESCO!`);
-    setActiveTab("graph");
-  };
+  }
+};
 
   return (
     <div style={{ display: "flex", flexDirection: "column", width: "100vw", height: "100vh", backgroundColor: "var(--bg-base)", color: "var(--text-primary)", position: "relative", zIndex: 1 }}>
@@ -228,10 +149,13 @@ export default function HomePage() {
 
       {/* ── SKILL GRAPH TAB ── */}
       {activeTab === "graph" && (
-        <div style={{ flex: 1, position: "relative" }}>
-          <Graph />
-        </div>
-      )}
+  <div style={{ flex: 1, position: "relative" }}>
+    <Graph savedPaths={savedPaths} onDeletePath={(id) => {
+      deletePath(id);
+      setSavedPaths(loadPaths());
+    }} />
+  </div>
+)}
 
       {/* ── SKILL MAP (AI) TAB ── */}
       {activeTab === "skillmap" && (
@@ -300,12 +224,12 @@ export default function HomePage() {
                 
                 <div style={{ display: "flex", justifyContent: "flex-start", marginTop: "28px" }}>
                   <button
-                    onClick={handleImportToGraph}
-                    className="btn-primary"
-                    style={{ background: "linear-gradient(135deg, #059669 0%, #10b981 100%)", boxShadow: "0 4px 24px rgba(16, 185, 129, 0.3)" }}
-                  >
-                    📥 Import Skills to Main Graph
-                  </button>
+  onClick={() => setActiveTab("graph")}
+  className="btn-primary"
+  style={{ background: "linear-gradient(135deg, #059669 0%, #10b981 100%)", boxShadow: "0 4px 24px rgba(16, 185, 129, 0.3)" }}
+>
+  📊 View in Dashboard
+</button>
                 </div>
               </div>
 

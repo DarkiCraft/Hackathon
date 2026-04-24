@@ -1,0 +1,237 @@
+{
+  "skills": [
+    
+    {
+      "id": "html_css",
+      "label": "HTML & CSS",
+      "needs": [],
+      "level": 1,
+      "domain": "webdev"
+    },
+    {
+      "id": "javascript",
+      "label": "JavaScript (ES6+)",
+      "needs": ["html_css"],
+      "level": 2,
+      "domain": "webdev"
+    },
+    {
+      "id": "dom_manipulation",
+      "label": "DOM Manipulation",
+      "needs": ["javascript"],
+      "level": 2,
+      "domain": "webdev"
+    },
+    {
+      "id": "git_basics",
+      "label": "Git & Version Control",
+      "needs": [],
+      "level": 1,
+      "domain": "webdev"
+    },
+    {
+      "id": "nodejs",
+      "label": "Node.js",
+      "needs": ["javascript"],
+      "level": 3,
+      "domain": "webdev"
+    },
+    {
+      "id": "expressjs",
+      "label": "Express.js",
+      "needs": ["nodejs"],
+      "level": 3,
+      "domain": "webdev"
+    },
+    {
+      "id": "restful_apis",
+      "label": "RESTful APIs",
+      "needs": ["expressjs", "http_basics"],
+      "level": 3,
+      "domain": "webdev"
+    },
+    {
+      "id": "http_basics",
+      "label": "HTTP & Web Basics",
+      "needs": ["html_css"],
+      "level": 2,
+      "domain": "webdev"
+    },
+    {
+      "id": "mongodb",
+      "label": "MongoDB",
+      "needs": ["nodejs"],
+      "level": 3,
+      "domain": "webdev"
+    },
+    {
+      "id": "react",
+      "label": "React",
+      "needs": ["javascript", "dom_manipulation"],
+      "level": 3,
+      "domain": "webdev"
+    },
+    {
+      "id": "react_hooks",
+      "label": "React Hooks",
+      "needs": ["react"],
+      "level": 4,
+      "domain": "webdev"
+    },
+    {
+      "id": "state_management",
+      "label": "State Management (Redux/Zustand)",
+      "needs": ["react_hooks"],
+      "level": 4,
+      "domain": "webdev"
+    },
+    {
+      "id": "nextjs",
+      "label": "Next.js",
+      "needs": ["react", "nodejs"],
+      "level": 4,
+      "domain": "webdev"
+    },
+    {
+      "id": "typescript",
+      "label": "TypeScript",
+      "needs": ["javascript"],
+      "level": 3,
+      "domain": "webdev"
+    },
+    {
+      "id": "sql_basics",
+      "label": "SQL & Relational DBs",
+      "needs": [],
+      "level": 2,
+      "domain": "webdev"
+    },
+    {
+      "id": "fullstack_app",
+      "label": "Full-Stack Web App",
+      "needs": ["react", "restful_apis", "mongodb"],
+      "level": 5,
+      "domain": "webdev"
+    },
+
+    {
+      "id": "line_weight",
+      "label": "Line Weight Control",
+      "needs": [],
+      "level": 1,
+      "domain": "art"
+    },
+    {
+      "id": "proportions",
+      "label": "Proportions & Measurement",
+      "needs": [],
+      "level": 1,
+      "domain": "art"
+    },
+    {
+      "id": "gesture_sketching",
+      "label": "Gesture Sketching",
+      "needs": ["proportions", "line_weight"],
+      "level": 2,
+      "domain": "art"
+    },
+    {
+      "id": "color_theory",
+      "label": "Color Theory",
+      "needs": [],
+      "level": 1,
+      "domain": "art"
+    },
+    {
+      "id": "anatomy",
+      "label": "Human Anatomy Drawing",
+      "needs": ["gesture_sketching", "proportions"],
+      "level": 3,
+      "domain": "art"
+    },
+    {
+      "id": "perspective",
+      "label": "Perspective Drawing",
+      "needs": ["proportions", "line_weight"],
+      "level": 2,
+      "domain": "art"
+    },
+    {
+      "id": "digital_tools",
+      "label": "Digital Drawing Tools (Procreate/Krita)",
+      "needs": ["gesture_sketching"],
+      "level": 2,
+      "domain": "art"
+    },
+    {
+      "id": "line_art",
+      "label": "Clean Line Art",
+      "needs": ["digital_tools", "line_weight"],
+      "level": 3,
+      "domain": "art"
+    },
+    {
+      "id": "digital_coloring",
+      "label": "Digital Coloring",
+      "needs": ["color_theory", "line_art"],
+      "level": 3,
+      "domain": "art"
+    },
+    {
+      "id": "shading_lighting",
+      "label": "Shading & Lighting",
+      "needs": ["color_theory", "digital_coloring"],
+      "level": 4,
+      "domain": "art"
+    },
+    {
+      "id": "digital_illustration",
+      "label": "Digital Illustration",
+      "needs": ["digital_coloring", "anatomy", "perspective"],
+      "level": 4,
+      "domain": "art"
+    },
+    {
+      "id": "character_design",
+      "label": "Character Design",
+      "needs": ["digital_illustration", "anatomy", "shading_lighting"],
+      "level": 5,
+      "domain": "art"
+    },
+    {
+      "id": "pixel_art",
+      "label": "Pixel Art",
+      "needs": ["digital_tools", "color_theory"],
+      "level": 3,
+      "domain": "art"
+    },
+    {
+      "id": "logo_design",
+      "label": "Logo Design",
+      "needs": ["color_theory", "perspective", "digital_tools"],
+      "level": 4,
+      "domain": "art"
+    },
+    {
+      "id": "typography",
+      "label": "Typography",
+      "needs": [],
+      "level": 2,
+      "domain": "art"
+    },
+    {
+      "id": "ui_design",
+      "label": "UI Design",
+      "needs": ["color_theory", "typography", "logo_design"],
+      "level": 4,
+      "domain": "art"
+    },
+    {
+      "id": "concept_art",
+      "label": "Concept Art",
+      "needs": ["character_design", "perspective", "digital_illustration"],
+      "level": 5,
+      "domain": "art"
+    }
+  ]
+}
