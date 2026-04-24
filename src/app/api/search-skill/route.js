@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-const WIKIDATA_SEARCH_URL = "https://www.wikidata.org/w/api.php";
+const ESCO_SEARCH_URL = "https://ec.europa.eu/esco/api/search";
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -11,32 +11,28 @@ export async function GET(request) {
   }
 
   try {
-    const url = `${WIKIDATA_SEARCH_URL}?action=wbsearchentities&search=${encodeURIComponent(
+    const url = `${ESCO_SEARCH_URL}?language=en&type=skill&text=${encodeURIComponent(
       name.trim()
-    )}&language=en&format=json&limit=5`;
+    )}&limit=10`;
 
     const response = await fetch(url, {
       headers: {
-        "User-Agent": "SkillGraphApp/1.0",
         "Accept": "application/json"
       }
     });
 
-    const text = await response.text();
-
-    if (text.startsWith("<!DOCTYPE")) {
-      console.error("Wikidata returned HTML instead of JSON");
-      return NextResponse.json({ error: "Wikidata returned HTML" }, { status: 500 });
+    if (!response.ok) {
+        throw new Error(`HTTP Error: ${response.status}`);
     }
 
-    const data = JSON.parse(text);
+    const data = await response.json();
 
-    if (!data.search) return NextResponse.json([]);
+    if (!data._embedded || !data._embedded.results) return NextResponse.json([]);
 
-    const results = data.search.map(item => ({
-      qid: item.id,
-      label: item.label,
-      description: item.description || ""
+    const results = data._embedded.results.map(item => ({
+      qid: item.uri,
+      label: item.title,
+      description: item.description?.en?.literal || "ESCO Skill"
     }));
 
     return NextResponse.json(results);
