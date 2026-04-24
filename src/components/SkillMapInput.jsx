@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 
@@ -42,8 +42,7 @@ export default function SkillMapInput({ onSubmit, loading, hasResults }) {
 
   return (
     <div
-      className="glass-card-strong animate-fade-in-up stagger-4"
-      style={{ padding: "36px" }}
+      className="animate-fade-in-up stagger-4"
     >
       {/* Header */}
       <div style={{ marginBottom: "28px" }}>

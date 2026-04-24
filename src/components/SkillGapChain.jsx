@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 
@@ -27,83 +27,70 @@ function MissingSkillCard({ skill, index, isActive, onClick }) {
   return (
     <button
       onClick={() => onClick(skill)}
-      aria-label={`Missing skill: ${skill.name}`}
       className={`animate-fade-in-up stagger-${Math.min(index + 1, 7)}`}
       style={{
         position: "relative",
         background: isActive
-          ? "rgba(239,68,68,0.18)"
-          : "rgba(239,68,68,0.08)",
+          ? "rgba(239, 68, 68, 0.2)"
+          : "rgba(255, 255, 255, 0.04)",
         border: isActive
-          ? "1px solid rgba(239,68,68,0.6)"
-          : "1px solid rgba(239,68,68,0.25)",
-        borderRadius: "12px",
-        padding: "14px 16px",
+          ? "1px solid rgba(239, 68, 68, 0.5)"
+          : "1px solid rgba(255, 255, 255, 0.1)",
+        borderRadius: "16px",
+        padding: "16px 20px",
         cursor: "pointer",
         textAlign: "left",
         flexShrink: 0,
-        minWidth: "130px",
-        maxWidth: "180px",
-        transition: "all 0.2s ease",
+        minWidth: "160px",
+        maxWidth: "220px",
+        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
         fontFamily: "inherit",
-        transform: isActive ? "translateY(-3px)" : "none",
-        boxShadow: isActive ? "0 8px 24px rgba(239,68,68,0.25)" : "none",
+        boxShadow: isActive ? "0 10px 30px rgba(239, 68, 68, 0.25)" : "none",
       }}
       onMouseEnter={(e) => {
         if (!isActive) {
-          e.currentTarget.style.background = "rgba(239,68,68,0.14)";
-          e.currentTarget.style.transform = "translateY(-2px)";
+          e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
+          e.currentTarget.style.borderColor = "rgba(239, 68, 68, 0.3)";
+          e.currentTarget.style.transform = "translateY(-4px)";
         }
       }}
       onMouseLeave={(e) => {
         if (!isActive) {
-          e.currentTarget.style.background = "rgba(239,68,68,0.08)";
+          e.currentTarget.style.background = "rgba(255, 255, 255, 0.04)";
+          e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
           e.currentTarget.style.transform = "none";
         }
       }}
     >
-      {/* Order badge */}
       <div
         style={{
-          position: "absolute",
-          top: "-10px",
-          left: "12px",
-          width: "22px",
-          height: "22px",
+          width: "24px",
+          height: "24px",
           borderRadius: "50%",
-          background: "rgba(239,68,68,0.9)",
+          background: "var(--color-danger)",
           color: "#fff",
           fontSize: "11px",
-          fontWeight: "700",
+          fontWeight: "800",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          marginBottom: "12px",
+          boxShadow: "0 0 10px rgba(239, 68, 68, 0.5)"
         }}
       >
         {index + 1}
       </div>
 
-      <p
+      <h5
         style={{
-          fontSize: "13px",
+          fontSize: "15px",
           fontWeight: "700",
-          color: "#fca5a5",
-          marginBottom: "4px",
-          marginTop: "4px",
+          color: isActive ? "#fff" : "#fca5a5",
           lineHeight: "1.3",
         }}
       >
         {skill.name}
-      </p>
-      <p
-        style={{
-          fontSize: "11px",
-          color: "rgba(252,165,165,0.6)",
-          lineHeight: "1.4",
-        }}
-      >
-        Tap for details
-      </p>
+      </h5>
     </button>
   );
 }

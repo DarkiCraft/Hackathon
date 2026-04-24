@@ -1,10 +1,12 @@
 "use client";
 import React, { useState, useEffect } from "react";
 
+/**
+ * Modernised AddSkillDialog with Dark Theme & Glassmorphism.
+ * Matches the SkillGraph premium aesthetic.
+ */
 export default function AddSkillDialog({ onClose, onSkillAdded, existingSkills = [] }) {
-
   const [step, setStep] = useState(1);
-
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [selectedSkill, setSelectedSkill] = useState(null);
@@ -13,21 +15,16 @@ export default function AddSkillDialog({ onClose, onSkillAdded, existingSkills =
     id: "",
     name: "",
     description: "",
-    relations: {
-      parentclasses: [],
-      subclasses: [],
-      associations: []
-    }
+    relations: { parentclasses: [], subclasses: [], associations: [] }
   });
 
   const [links, setLinks] = useState([]);
   const [notes, setNotes] = useState("");
-  const [color, setColor] = useState("#4F46E5");
+  const [color, setColor] = useState("#8b5cf6");
 
   const [searchLoading, setSearchLoading] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
 
-  // ── SEARCH ──────────────────────────────────────────────────────────────
   const handleSearch = async () => {
     if (!query.trim()) return;
     try {
@@ -43,31 +40,21 @@ export default function AddSkillDialog({ onClose, onSkillAdded, existingSkills =
     }
   };
 
-  // ── LOAD ESCO DETAILS ────────────────────────────────────────────────────
   const loadSkillDetails = async () => {
     if (!selectedSkill) return;
     try {
       setDetailsLoading(true);
-      const res = await fetch(
-        `/api/skill-details?qid=${encodeURIComponent(selectedSkill.qid)}`
-      );
+      const res = await fetch(`/api/skill-details?qid=${encodeURIComponent(selectedSkill.qid)}`);
       const data = await res.json();
       setSkillDetails({
         id: data.id || selectedSkill.qid,
         name: data.name || selectedSkill.label,
         description: data.description || "",
-        relations: data.relations || {
-          parentclasses: [],
-          subclasses: [],
-          associations: []
-        }
+        relations: data.relations || { parentclasses: [], subclasses: [], associations: [] }
       });
-      setLinks([
-        `https://esco.ec.europa.eu/en/classification/skill_en?uri=${encodeURIComponent(selectedSkill.qid)}`
-      ]);
+      setLinks([`https://esco.ec.europa.eu/en/classification/skill_en?uri=${encodeURIComponent(selectedSkill.qid)}`]);
     } catch (err) {
       console.error(err);
-      // fallback: still allow adding with basic info
       setSkillDetails({
         id: selectedSkill.qid,
         name: selectedSkill.label,
@@ -83,29 +70,12 @@ export default function AddSkillDialog({ onClose, onSkillAdded, existingSkills =
     if (step === 2) loadSkillDetails();
   }, [step]);
 
-  // ── LINKS ────────────────────────────────────────────────────────────────
-  const addLink = () => setLinks([...links, ""]);
-  const updateLink = (i, v) => {
-    const u = [...links];
-    u[i] = v;
-    setLinks(u);
-  };
-  const removeLink = (i) => {
-    if (i === 0) return;
-    setLinks(links.filter((_, idx) => idx !== i));
-  };
-
-  // ── SUBMIT to parent (Graph handles localStorage) ────────────────────────
   const handleConfirm = () => {
-    if (!skillDetails.id) {
-      alert("Skill details not loaded yet.");
-      return;
-    }
+    if (!skillDetails.id) return;
     if (existingSkills.find(s => s.id === skillDetails.id)) {
       alert("This skill is already in your graph.");
       return;
     }
-
     onSkillAdded({
       id: skillDetails.id,
       name: skillDetails.name,
@@ -117,214 +87,124 @@ export default function AddSkillDialog({ onClose, onSkillAdded, existingSkills =
     });
   };
 
-  // ── UI ───────────────────────────────────────────────────────────────────
-  const btnBase = {
-    padding: "6px 14px",
-    border: "none",
-    borderRadius: "4px",
-    cursor: "pointer",
-    fontWeight: "600"
+  const overlayStyle = {
+    position: "fixed", inset: 0,
+    backgroundColor: "rgba(0,0,0,0.8)",
+    backdropFilter: "blur(8px)",
+    display: "flex", justifyContent: "center", alignItems: "center",
+    zIndex: 10000,
+    padding: "20px"
+  };
+
+  const modalStyle = {
+    width: "100%", maxWidth: "500px",
+    background: "#0d1117",
+    border: "1px solid rgba(255,255,255,0.1)",
+    borderRadius: "24px",
+    padding: "32px",
+    maxHeight: "90vh",
+    overflowY: "auto",
+    boxShadow: "0 24px 64px rgba(0,0,0,0.6)",
+    position: "relative"
+  };
+
+  const sectionLabel = {
+    fontSize: "12px",
+    fontWeight: "800",
+    color: "#8b949e",
+    textTransform: "uppercase",
+    letterSpacing: "0.05em",
+    marginBottom: "8px",
+    display: "block"
   };
 
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed", top: 0, left: 0,
-        width: "100vw", height: "100vh",
-        backgroundColor: "rgba(0,0,0,0.5)",
-        display: "flex", justifyContent: "center", alignItems: "center",
-        zIndex: 9999, backdropFilter: "blur(3px)"
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          backgroundColor: "#fff",
-          padding: "24px",
-          borderRadius: "12px",
-          width: "440px",
-          maxHeight: "80vh",
-          overflowY: "auto",
-          boxShadow: "0 10px 25px rgba(0,0,0,0.25)"
-        }}
-      >
-        <h2 style={{ marginBottom: "8px" }}>Add New Skill</h2>
-        <p style={{ marginBottom: "16px", color: "#6b7280", fontSize: "13px" }}>
-          Step {step} / 2
-        </p>
+    <div style={overlayStyle} onClick={onClose}>
+      <div style={modalStyle} onClick={(e) => e.stopPropagation()} className="animate-fade-in-up">
+        
+        {/* Header */}
+        <header style={{ marginBottom: "24px" }}>
+          <h2 style={{ fontSize: "24px", fontWeight: "900", color: "#f0f6fc", marginBottom: "4px" }}>Add Skill</h2>
+          <p style={{ fontSize: "14px", color: "#8b949e" }}>Step {step} of 2 ΓÇö {step === 1 ? "Select from ESCO" : "Review details"}</p>
+        </header>
 
-        {/* ── STEP 1: SEARCH ─────────────────────────────────────────── */}
-        {step === 1 && (
-          <>
-            <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
+        {step === 1 ? (
+          <div className="animate-fade-in">
+            <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
               <input
                 type="text"
-                placeholder="Search ESCO skill..."
+                placeholder="Search ESCO skills (e.g. Python, Design...)"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                style={{
-                  flex: 1, padding: "8px",
-                  border: "1px solid #d1d5db", borderRadius: "6px"
-                }}
+                className="skillmap-input"
+                style={{ flex: 1 }}
               />
-              <button
-                onClick={handleSearch}
-                style={{ ...btnBase, backgroundColor: "#374151", color: "#fff" }}
-              >
+              <button onClick={handleSearch} className="btn-primary" style={{ padding: "0 20px", borderRadius: "12px" }}>
                 Search
               </button>
             </div>
 
-            {searchLoading && <p style={{ color: "#6b7280" }}>Searching ESCO...</p>}
+            {searchLoading && <div style={{ textAlign: "center", color: "#8b949e", padding: "20px" }}>Searching...</div>}
 
-            <div style={{ maxHeight: "280px", overflowY: "auto" }}>
+            <div style={{ display: "grid", gap: "10px", maxHeight: "300px", overflowY: "auto", paddingRight: "4px" }}>
               {results.map((item) => (
-                <div
+                <button
                   key={item.qid}
                   onClick={() => setSelectedSkill(item)}
                   style={{
-                    padding: "10px", marginBottom: "6px", borderRadius: "6px",
-                    border: selectedSkill?.qid === item.qid
-                      ? "2px solid #4F46E5" : "1px solid #e5e7eb",
-                    cursor: "pointer", backgroundColor: selectedSkill?.qid === item.qid ? "#f5f3ff" : "#fff"
+                    padding: "16px", borderRadius: "16px", textAlign: "left",
+                    background: selectedSkill?.qid === item.qid ? "rgba(139,92,246,0.15)" : "rgba(255,255,255,0.03)",
+                    border: `1px solid ${selectedSkill?.qid === item.qid ? "#8b5cf6" : "rgba(255,255,255,0.1)"}`,
+                    cursor: "pointer", transition: "all 0.2s"
                   }}
                 >
-                  <strong style={{ fontSize: "14px" }}>{item.label}</strong>
-                  <div style={{ fontSize: "12px", color: "#6b7280", marginTop: "2px" }}>
-                    {item.description}
-                  </div>
-                </div>
+                  <strong style={{ display: "block", color: "#f0f6fc", fontSize: "15px", marginBottom: "4px" }}>{item.label}</strong>
+                  <span style={{ fontSize: "13px", color: "#8b949e", lineHeight: "1.4" }}>{item.description}</span>
+                </button>
               ))}
             </div>
 
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "16px" }}>
-              <button onClick={onClose} style={{ ...btnBase, backgroundColor: "#e5e7eb", color: "#374151" }}>
-                Cancel
-              </button>
-              <button
-                onClick={() => setStep(2)}
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "32px" }}>
+              <button onClick={onClose} style={{ background: "transparent", border: "1px solid #30363d", color: "#c9d1d9", padding: "10px 24px", borderRadius: "99px", cursor: "pointer", fontWeight: "600" }}>Cancel</button>
+              <button 
+                onClick={() => setStep(2)} 
                 disabled={!selectedSkill}
-                style={{
-                  ...btnBase,
-                  backgroundColor: selectedSkill ? "#374151" : "#9ca3af",
-                  color: "#fff",
-                  cursor: selectedSkill ? "pointer" : "not-allowed"
-                }}
+                className="btn-primary"
               >
-                Next →
+                Next Step ΓÜ¬
               </button>
             </div>
-          </>
-        )}
-
-        {/* ── STEP 2: REVIEW & CUSTOMISE ─────────────────────────────── */}
-        {step === 2 && (
+          </div>
+        ) : (
           detailsLoading ? (
-            <div style={{ textAlign: "center", padding: "40px 0", color: "#6b7280" }}>
-              <div style={{ fontSize: "24px", marginBottom: "8px" }}>⏳</div>
-              Loading skill details from ESCO...
+            <div style={{ textAlign: "center", padding: "60px 0" }}>
+              <div className="animate-spin" style={{ fontSize: "32px", marginBottom: "12px" }}>⚙️</div>
+              <p style={{ color: "#8b949e" }}>Fetching ESCO Metadata...</p>
             </div>
           ) : (
-            <>
-              <div style={{ marginBottom: "12px" }}>
-                <p style={{ fontWeight: "700", fontSize: "16px" }}>{skillDetails.name}</p>
-                <p style={{ fontSize: "13px", color: "#6b7280", marginTop: "4px" }}>
-                  {skillDetails.description}
-                </p>
+            <div className="animate-fade-in">
+              <div style={{ background: "rgba(255,255,255,0.03)", padding: "20px", borderRadius: "16px", border: "1px solid rgba(255,255,255,0.1)", marginBottom: "20px" }}>
+                <h3 style={{ fontSize: "18px", fontWeight: "700", color: "#f0f6fc", marginBottom: "8px" }}>{skillDetails.name}</h3>
+                <p style={{ fontSize: "14px", color: "#8b949e", lineHeight: "1.5" }}>{skillDetails.description}</p>
               </div>
 
-              {/* Relations summary */}
-              {skillDetails.relations.parentclasses.length > 0 && (
-                <div style={{ marginBottom: "10px" }}>
-                  <strong style={{ fontSize: "13px" }}>Parent skills:</strong>
-                  <div style={{ fontSize: "12px", color: "#6b7280" }}>
-                    {skillDetails.relations.parentclasses.map(p => p.name || p.id).join(", ")}
-                  </div>
-                </div>
-              )}
-
-              {skillDetails.relations.subclasses.length > 0 && (
-                <div style={{ marginBottom: "10px" }}>
-                  <strong style={{ fontSize: "13px" }}>Subskills:</strong>
-                  <div style={{ fontSize: "12px", color: "#6b7280" }}>
-                    {skillDetails.relations.subclasses.map(s => s.name || s.id).join(", ")}
-                  </div>
-                </div>
-              )}
-
-              {/* Links */}
-              <p style={{ fontWeight: "600", fontSize: "13px", marginTop: "12px", marginBottom: "6px" }}>
-                Links
-              </p>
-              {links.map((link, i) => (
-                <div key={i} style={{ display: "flex", gap: "6px", marginBottom: "6px" }}>
-                  <input
-                    value={link}
-                    disabled={i === 0}
-                    onChange={(e) => updateLink(i, e.target.value)}
-                    style={{
-                      flex: 1, padding: "6px",
-                      border: "1px solid #d1d5db", borderRadius: "4px",
-                      fontSize: "12px",
-                      backgroundColor: i === 0 ? "#f9fafb" : "#fff"
-                    }}
-                  />
-                  {i !== 0 && (
-                    <button onClick={() => removeLink(i)}
-                      style={{ ...btnBase, backgroundColor: "#fee2e2", color: "#dc2626" }}>
-                      ×
-                    </button>
-                  )}
-                </div>
-              ))}
-              <button onClick={addLink}
-                style={{ ...btnBase, backgroundColor: "#f3f4f6", color: "#374151", marginBottom: "12px", fontSize: "12px" }}>
-                + Add link
-              </button>
-
-              {/* Notes */}
-              <p style={{ fontWeight: "600", fontSize: "13px", marginBottom: "6px" }}>Notes</p>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={2}
-                placeholder="Personal notes about this skill..."
-                style={{
-                  width: "100%", padding: "6px",
-                  border: "1px solid #d1d5db", borderRadius: "4px",
-                  fontSize: "13px", marginBottom: "12px", resize: "vertical"
-                }}
-              />
-
-              {/* Color (only for root skills) */}
-              {skillDetails.relations.parentclasses.length === 0 && (
-                <div style={{ marginBottom: "12px" }}>
-                  <p style={{ fontWeight: "600", fontSize: "13px", marginBottom: "4px" }}>Node Color</p>
-                  <input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
-                </div>
-              )}
-
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "8px" }}>
-                <button onClick={() => setStep(1)}
-                  style={{ ...btnBase, backgroundColor: "#e5e7eb", color: "#374151" }}>
-                  ← Back
-                </button>
-                <button
-                  onClick={handleConfirm}
-                  disabled={!skillDetails.id}
-                  style={{
-                    ...btnBase,
-                    backgroundColor: skillDetails.id ? "#374151" : "#9ca3af",
-                    color: "#fff",
-                    cursor: skillDetails.id ? "pointer" : "not-allowed"
-                  }}
-                >
-                  Add to Graph
-                </button>
+              <div style={{ marginBottom: "20px" }}>
+                <label style={sectionLabel}>Notes</label>
+                <textarea 
+                  className="skillmap-textarea" 
+                  rows={3} 
+                  placeholder="Personal notes..." 
+                  value={notes}
+                  onChange={e => setNotes(e.target.value)}
+                />
               </div>
-            </>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "32px" }}>
+                <button onClick={() => setStep(1)} style={{ background: "transparent", border: "1px solid #30363d", color: "#c9d1d9", padding: "10px 24px", borderRadius: "99px", cursor: "pointer", fontWeight: "600" }}>ΓÜÖ Back</button>
+                <button onClick={handleConfirm} className="btn-primary">Add to Graph Γ£ô</button>
+              </div>
+            </div>
           )
         )}
       </div>

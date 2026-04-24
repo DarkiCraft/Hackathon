@@ -73,197 +73,268 @@ export default function HomePage() {
     }
   };
 
-  const handleImportToGraph = () => {
+  const handleImportToGraph = async () => {
     if (!results) return;
     const { missingSkills, knownSkills } = results;
     const goalTitle = formData?.goal || "My Goal";
     const goalId = `goal_${goalTitle.toLowerCase().replace(/\s+/g, "_")}`;
     let addedCount = 0;
 
+    setLoading(true); // Reuse loading state for the import process
+
+    // Helper to fetch best ESCO match
+    const getEscoMatch = async (name) => {
+      try {
+        const res = await fetch(`/api/search-skill?name=${encodeURIComponent(name)}`);
+        const data = await res.json();
+        if (data && data.length > 0) {
+          const best = data[0];
+          // Get full details for the best match
+          const detailRes = await fetch(`/api/skill-details?qid=${encodeURIComponent(best.qid)}`);
+          return await detailRes.json();
+        }
+      } catch (e) {
+        console.error("ESCO lookup failed for:", name, e);
+      }
+      return null;
+    };
+
     // 1. Add Goal Node
     const goalPayload = {
       id: goalId,
       name: `🎯 Goal: ${goalTitle}`,
       description: "Target goal for this analysis.",
-      color: "#8b5cf6", // purple for goal
+      color: "#8b5cf6",
       relations: { parentclasses: [], subclasses: [], associations: [] }
     };
     if (addSkill(goalPayload).success) addedCount++;
 
-    // 2. Add Known Skills (linked to Goal)
-    knownSkills.forEach(skill => {
+    // 2. Add Known Skills 
+    for (const skill of knownSkills) {
+      const match = await getEscoMatch(skill.name);
       const skillPayload = {
-        id: `ai_${skill.name.toLowerCase().replace(/\s+/g, "_")}`,
-        name: skill.name,
-        description: "Skill you already know.",
-        color: "#10b981", // green for known
-        relations: { 
+        id: match?.id || `ai_${skill.name.toLowerCase().replace(/\s+/g, "_")}`,
+        name: match?.name || skill.name,
+        description: match?.description || "Skill you already know.",
+        color: "#10b981",
+        relations: match?.relations || { 
           parentclasses: [], 
           subclasses: [{ id: goalId, name: goalPayload.name }], 
           associations: [] 
         }
       };
-      const res = addSkill(skillPayload);
-      if (res.success) addedCount++;
-    });
+      // Force link to goal if not already there
+      if (!skillPayload.relations.subclasses.some(s => s.id === goalId)) {
+        skillPayload.relations.subclasses.push({ id: goalId, name: goalPayload.name });
+      }
+      if (addSkill(skillPayload).success) addedCount++;
+    }
 
     // 3. Add Missing Skills
-    missingSkills.forEach((skill, i) => {
-      const skillId = `ai_${skill.name.toLowerCase().replace(/\s+/g, "_")}`;
+    for (let i = 0; i < missingSkills.length; i++) {
+      const skill = missingSkills[i];
+      const match = await getEscoMatch(skill.name);
+      
+      const skillId = match?.id || `ai_${skill.name.toLowerCase().replace(/\s+/g, "_")}`;
       const skillPayload = {
         id: skillId,
-        name: skill.name,
-        description: skill.why,
-        color: "#ef4444", // red for missing
-        relations: { parentclasses: [], subclasses: [], associations: [] }
+        name: match?.name || skill.name,
+        description: match?.description || skill.why,
+        color: "#ef4444",
+        relations: match?.relations || { parentclasses: [], subclasses: [], associations: [] }
       };
 
+      // Determine next ID for connection
+      let nextId = null;
+      let nextName = null;
       if (i < missingSkills.length - 1) {
-        // Link to next missing skill
-        skillPayload.relations.subclasses.push({
-          id: `ai_${missingSkills[i + 1].name.toLowerCase().replace(/\s+/g, "_")}`,
-          name: missingSkills[i + 1].name
-        });
+        // Link to next in chain (we'll assume the next one's ID pattern)
+        const nextSkill = missingSkills[i+1];
+        nextId = `ai_${nextSkill.name.toLowerCase().replace(/\s+/g, "_")}`;
+        nextName = nextSkill.name;
       } else {
-        // Final missing skill links to Goal
-        skillPayload.relations.subclasses.push({
-          id: goalId,
-          name: goalPayload.name
-        });
+        // Last one links to goal
+        nextId = goalId;
+        nextName = goalPayload.name;
+      }
+
+      if (nextId && !skillPayload.relations.subclasses.some(s => s.id === nextId)) {
+        skillPayload.relations.subclasses.push({ id: nextId, name: nextName });
       }
 
       const res = addSkill(skillPayload);
       if (res.success) addedCount++;
-    });
+    }
 
-    alert(`Successfully added ${addedCount} skills to your Skill Graph!`);
+    setLoading(false);
+    alert(`Successfully imported and validated ${addedCount} nodes from ESCO!`);
     setActiveTab("graph");
   };
 
   const tabStyle = (tab) => ({
-    padding: "10px 24px",
+    padding: "16px 28px",
     border: "none",
-    borderBottom: activeTab === tab ? "3px solid #4F46E5" : "3px solid transparent",
+    borderBottom: activeTab === tab ? "2px solid #8b5cf6" : "2px solid transparent",
     backgroundColor: "transparent",
     fontWeight: activeTab === tab ? "700" : "500",
-    color: activeTab === tab ? "#4F46E5" : "#6b7280",
+    color: activeTab === tab ? "#f1f5f9" : "#94a3b8",
     cursor: "pointer",
-    fontSize: "15px",
-    transition: "all 0.15s",
+    fontSize: "14px",
+    letterSpacing: "0.02em",
+    transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    background: activeTab === tab ? "rgba(139, 92, 246, 0.05)" : "transparent",
   });
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", width: "100vw", height: "100vh" }}>
+    <div style={{ display: "flex", flexDirection: "column", width: "100vw", height: "100vh", backgroundColor: "#010409", color: "#f1f5f9" }}>
 
       {/* ── NAV BAR ── */}
       <nav style={{
         display: "flex",
         alignItems: "center",
-        gap: "4px",
-        borderBottom: "1px solid #e5e7eb",
-        backgroundColor: "#fff",
-        padding: "0 24px",
+        justifyContent: "space-between",
+        borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+        backgroundColor: "rgba(1, 4, 9, 0.8)",
+        backdropFilter: "blur(20px)",
+        padding: "0 40px",
+        height: "64px",
         flexShrink: 0,
+        zIndex: 100,
+        position: "sticky",
+        top: 0
       }}>
-        <span style={{ fontWeight: "800", fontSize: "18px", color: "#1f2937", marginRight: "24px" }}>
-          🧭 SkillGraph
-        </span>
-        <button style={tabStyle("graph")} onClick={() => setActiveTab("graph")}>
-          Skill Graph
-        </button>
-        <button style={tabStyle("skillmap")} onClick={() => setActiveTab("skillmap")}>
-          Skill Gap Analyzer
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <span style={{ fontSize: "24px" }}>🧭</span>
+          <span style={{ fontWeight: "900", fontSize: "20px", letterSpacing: "-0.02em", background: "linear-gradient(to right, #fff, #94a3b8)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+            SkillGraph
+          </span>
+        </div>
+
+        <div style={{ display: "flex", gap: "8px", height: "100%" }}>
+          <button style={tabStyle("graph")} onClick={() => setActiveTab("graph")}>
+            <span>📊</span> Dashboard
+          </button>
+          <button style={tabStyle("skillmap")} onClick={() => setActiveTab("skillmap")}>
+            <span>⚡</span> Gap Analyzer
+          </button>
+        </div>
+
+        <div style={{ width: "120px" }} /> {/* Spacer */}
       </nav>
 
       {/* ── SKILL GRAPH TAB ── */}
       {activeTab === "graph" && (
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, position: "relative" }}>
           <Graph />
         </div>
       )}
 
       {/* ── SKILL MAP (AI) TAB ── */}
       {activeTab === "skillmap" && (
-        <div style={{ flex: 1, overflowY: "auto", backgroundColor: "#0a0f1e" }}>
-          <header style={{ textAlign: "center", padding: "64px 24px 40px", maxWidth: "700px", margin: "0 auto" }}>
-            <h1 style={{ fontSize: "clamp(32px,6vw,56px)", fontWeight: "900", color: "#f1f5f9", marginBottom: "12px" }}>
+        <div style={{ flex: 1, overflowY: "auto", backgroundColor: "#010409", backgroundImage: "radial-gradient(circle at 50% -20%, #161b22, #010409)" }}>
+          <header style={{ textAlign: "center", padding: "80px 24px 60px", maxWidth: "800px", margin: "0 auto" }}>
+            <h1 className="gradient-text" style={{ fontSize: "clamp(40px, 8vw, 72px)", fontWeight: "900", lineHeight: "1.1", marginBottom: "20px", letterSpacing: "-0.03em" }}>
               Skill Gap Analyzer
             </h1>
-            <p style={{ color: "#94a3b8", fontSize: "16px", lineHeight: "1.6" }}>
-              Tell us your goal and what you already know — we&apos;ll find the exact skills you&apos;re missing.
+            <p style={{ color: "#8b949e", fontSize: "18px", lineHeight: "1.6", maxWidth: "600px", margin: "0 auto" }}>
+              Tell us your goal and what you already know — we&apos;ll find the exact skills you&apos;re missing to bridge the gap.
             </p>
           </header>
 
-          <section style={{ maxWidth: "660px", margin: "0 auto", padding: "0 24px 48px" }}>
-            <SkillMapInput onSubmit={handleAnalyze} loading={loading} hasResults={!!results} />
+          <section style={{ maxWidth: "700px", margin: "0 auto", padding: "0 24px 64px" }}>
+            <div className="glass-card-strong" style={{ padding: "32px", border: "1px solid rgba(139, 92, 246, 0.2)" }}>
+              <SkillMapInput onSubmit={handleAnalyze} loading={loading} hasResults={!!results} />
+            </div>
           </section>
 
           {error && (
-            <div style={{ maxWidth: "660px", margin: "0 auto 24px", padding: "0 24px" }}>
-              <div style={{ background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: "8px", padding: "12px 16px", color: "#dc2626" }}>
-                ⚠️ {error}
+            <div style={{ maxWidth: "700px", margin: "0 auto 32px", padding: "0 24px" }}>
+              <div style={{ background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.3)", borderRadius: "12px", padding: "16px 20px", color: "#ffa39e", display: "flex", gap: "12px", alignItems: "center" }}>
+                <span style={{ fontSize: "20px" }}>⚠️</span>
+                <span style={{ fontWeight: "500" }}>{error}</span>
               </div>
             </div>
           )}
 
           {loading && (
-            <div style={{ textAlign: "center", padding: "40px", color: "#94a3b8" }}>
-              <div style={{ fontSize: "32px", marginBottom: "12px" }}>⏳</div>
-              Analyzing your skill gap...
+            <div style={{ textAlign: "center", padding: "80px 24px", color: "#8b949e" }}>
+              <div className="animate-spin" style={{ fontSize: "48px", marginBottom: "24px", display: "inline-block" }}>⚙️</div>
+              <p style={{ fontSize: "18px", fontWeight: "500", letterSpacing: "0.02em" }}>Analyzing your path with Gemini AI...</p>
             </div>
           )}
 
           {results && !loading && (
-            <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "0 24px 80px" }}>
-              <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "20px", gap: "12px" }}>
-                <button
-                  onClick={handleImportToGraph}
-                  style={{
-                    padding: "10px 20px",
-                    backgroundColor: "#10b981",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "8px",
-                    cursor: "pointer",
-                    fontWeight: "700",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    boxShadow: "0 4px 12px rgba(16,185,129,0.3)"
-                  }}
-                >
-                  📥 Add Missing Skills to Main Graph
-                </button>
+            <div className="animate-fade-in" style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 24px 120px" }}>
+              
+              {/* Summary Hero */}
+              <div className="glass-card" style={{ padding: "40px", marginBottom: "64px", position: "relative", overflow: "hidden" }}>
+                <div style={{ position: "absolute", top: 0, left: 0, width: "4px", height: "100%", background: "var(--color-primary)" }} />
+                <h2 style={{ fontSize: "24px", fontWeight: "800", color: "#f0f6fc", marginBottom: "16px", display: "flex", alignItems: "center", gap: "12px" }}>
+                  <span style={{ fontSize: "28px" }}>📝</span> The Analysis
+                </h2>
+                <p style={{ fontSize: "18px", lineHeight: "1.7", color: "#c9d1d9", fontWeight: "400" }}>
+                  {results.summary}
+                </p>
+                
+                <div style={{ display: "flex", justifyContent: "flex-start", marginTop: "32px" }}>
+                  <button
+                    onClick={handleImportToGraph}
+                    className="btn-primary"
+                    style={{ background: "linear-gradient(135deg, #238636 0%, #2ea043 100%)", boxShadow: "0 4px 20px rgba(46, 160, 67, 0.3)" }}
+                  >
+                    📥 Import Skills to Main Graph
+                  </button>
+                </div>
               </div>
 
-              {results.summary && (
-                <div style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", padding: "20px", marginBottom: "40px", color: "#e2e8f0" }}>
-                  <strong>Summary:</strong> {results.summary}
-                </div>
-              )}
+              {/* Grid Section */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "64px" }}>
+                
+                {/* 1. Chain */}
+                <section>
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "24px" }}>
+                    <span style={{ fontSize: "24px" }}>🔗</span>
+                    <h2 className="section-title">Dependency Chain</h2>
+                  </div>
+                  <SkillGapChain
+                    missingSkills={results.missingSkills || []}
+                    knownSkills={results.knownSkills || []}
+                  />
+                </section>
 
-              <h2 style={{ color: "#f1f5f9", marginBottom: "16px" }}>🔗 Skill Gap Chain</h2>
-              <SkillGapChain
-                missingSkills={results.missingSkills || []}
-                knownSkills={results.knownSkills || []}
-              />
+                {/* 2. Graph */}
+                <section>
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "24px" }}>
+                    <span style={{ fontSize: "24px" }}>🕸️</span>
+                    <h2 className="section-title">Visual Map</h2>
+                  </div>
+                  <SkillMapGraph
+                    missingSkills={results.missingSkills || []}
+                    knownSkills={results.knownSkills || []}
+                  />
+                </section>
 
-              <h2 style={{ color: "#f1f5f9", margin: "40px 0 16px" }}>🕸️ Dependency Graph</h2>
-              <SkillMapGraph
-                missingSkills={results.missingSkills || []}
-                knownSkills={results.knownSkills || []}
-              />
+                {/* 3. Learning Plan */}
+                <section>
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "24px" }}>
+                    <span style={{ fontSize: "24px" }}>📅</span>
+                    <h2 className="section-title">7-Day Learning Plan</h2>
+                  </div>
+                  <LearningPlan days={results.learningPlan || []} />
+                </section>
+              </div>
 
-              <h2 style={{ color: "#f1f5f9", margin: "40px 0 16px" }}>📅 7-Day Learning Plan</h2>
-              <LearningPlan days={results.learningPlan || []} />
-
-              <div style={{ textAlign: "center", marginTop: "32px" }}>
+              <div style={{ textAlign: "center", marginTop: "100px", paddingTop: "60px", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
                 <button
                   onClick={() => { setResults(null); setError(null); }}
-                  style={{ padding: "10px 24px", backgroundColor: "rgba(255,255,255,0.1)", color: "#f1f5f9", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "8px", cursor: "pointer", fontWeight: "600" }}
+                  style={{ background: "transparent", color: "#8b949e", border: "1px solid #484f58", padding: "12px 32px", borderRadius: "99px", cursor: "pointer", fontWeight: "600", transition: "all 0.2s" }}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = "#8b949e"}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = "#484f58"}
                 >
-                  🔄 Analyze Another Goal
+                  🔄 Reset and Try Another Goal
                 </button>
               </div>
             </div>

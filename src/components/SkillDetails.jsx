@@ -1,143 +1,97 @@
 "use client";
 import React, { useState } from "react";
 
+/**
+ * Modernised SkillDetails.
+ * Displays node info with a high-end dark theme.
+ */
 export default function SkillDetails({ node, onEdit, onDelete, onClose }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const { parentclasses = [], subclasses = [], associations = [] } =
     node.relations || {};
 
+  const detailSection = (title, content, color) => (
+    <div style={{ marginBottom: "20px" }}>
+      <h4 style={{ fontSize: "11px", fontWeight: "800", color: "#8b949e", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "8px" }}>
+        {title}
+      </h4>
+      <div style={{ fontSize: "15px", color: color || "#c9d1d9", lineHeight: "1.6" }}>
+        {content}
+      </div>
+    </div>
+  );
+
   return (
-    <>
-      <h2>{node.name}</h2>
+    <div className="animate-fade-in">
+      {/* Title */}
+      <h2 style={{ fontSize: "28px", fontWeight: "900", color: "#f0f6fc", marginBottom: "16px", letterSpacing: "-0.02em" }}>
+        {node.name}
+      </h2>
 
-      <p>{node.description}</p>
+      {/* Description */}
+      {detailSection("Description", node.description)}
 
-      {node.color && <p><b>Color:</b> {node.color || "#4F46E5"}</p>}
+      {/* Notes */}
+      {node.notes && detailSection("Notes", node.notes)}
 
-      {node.notes && <p><b>Notes:</b> {node.notes}</p>}
-
-      {/* LINKS */}
-      {node.links?.length > 0 && (
-        <>
-          <b>Links:</b>
+      {/* Links */}
+      {node.links?.length > 0 && detailSection("Resources", (
+        <div style={{ display: "grid", gap: "8px" }}>
           {node.links.map((link, i) => (
-            <div key={i}>
-              <a href={link} target="_blank" rel="noreferrer">{link}</a>
-            </div>
+            <a 
+              key={i} 
+              href={link} 
+              target="_blank" 
+              rel="noreferrer"
+              style={{ color: "#58a6ff", textDecoration: "none", display: "flex", alignItems: "center", gap: "6px" }}
+              onMouseEnter={e => e.currentTarget.style.textDecoration = "underline"}
+              onMouseLeave={e => e.currentTarget.style.textDecoration = "none"}
+            >
+              <span>🔗</span> <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{link}</span>
+            </a>
           ))}
-        </>
-      )}
-
-      {/* RELATIONS */}
-      <div
-        style={{
-          maxHeight: "150px",
-          overflowY: "auto",
-          border: "2px inset #ddd",
-          padding: "8px",
-          borderRadius: "6px",
-          marginTop: "10px",
-          background: "#eee",
-        }}
-      >
-        <b>Relations</b>
-
-        <div>
-          <p><b>Parents:</b></p>
-          {parentclasses.length > 0
-            ? parentclasses.map(p => <div key={p.id}>{p.name || p.id}</div>)
-            : <div>-</div>
-          }
         </div>
+      ))}
 
-        <div>
-          <p><b>Subclasses:</b></p>
-          {subclasses.length > 0
-            ? subclasses.map(p => <div key={p.id}>{p.name || p.id}</div>)
-            : <div>-</div>
-          }
-        </div>
-
-        <div>
-          <p><b>Associations:</b></p>
-          {associations.length > 0
-            ? associations.map((a, i) => (
-                <div key={i}>
-                  {a.name || a.id}
-                  {a.type && (
-                    <span style={{ marginLeft: "6px", color: "#6b7280" }}>({a.type})</span>
-                  )}
-                </div>
-              ))
-            : <div>-</div>
-          }
+      {/* Hierarchy Summary */}
+      <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: "16px", padding: "20px", border: "1px solid rgba(255,255,255,0.08)", marginBottom: "32px" }}>
+        <h4 style={{ fontSize: "12px", fontWeight: "800", color: "#fff", textTransform: "uppercase", marginBottom: "12px" }}>ONTOLOGY</h4>
+        
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+          <div>
+            <p style={{ fontSize: "11px", color: "#8b949e", fontWeight: "700", marginBottom: "4px" }}>PARENTS</p>
+            <div style={{ fontSize: "13px" }}>{parentclasses.length > 0 ? parentclasses.map(p => p.name).join(", ") : "None"}</div>
+          </div>
+          <div>
+            <p style={{ fontSize: "11px", color: "#8b949e", fontWeight: "700", marginBottom: "4px" }}>CHILDREN</p>
+            <div style={{ fontSize: "13px" }}>{subclasses.length > 0 ? subclasses.map(s => s.name).join(", ") : "None"}</div>
+          </div>
         </div>
       </div>
 
-      {/* ACTIONS */}
-      <div style={{ marginTop: "12px", display: "flex", gap: "8px", alignItems: "center" }}>
-        <button onClick={onEdit}>Edit</button>
-
-        {confirmingDelete ? (
-          <>
-            <span style={{ fontSize: "14px", color: "#374151" }}>Are you sure?</span>
-            <button
-              onClick={() => onDelete(node.id)}
-              style={{
-                padding: "6px 12px",
-                backgroundColor: "#dc2626",
-                border: "none",
-                borderRadius: "4px",
-                color: "white",
-                cursor: "pointer"
-              }}
+      {/* Actions */}
+      <footer style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "24px" }}>
+        <div style={{ display: "flex", gap: "12px" }}>
+          <button onClick={onEdit} className="btn-primary" style={{ padding: "8px 20px" }}>Edit</button>
+          
+          {confirmingDelete ? (
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <button onClick={() => onDelete(node.id)} style={{ background: "#da3633", border: "none", color: "#fff", padding: "8px 16px", borderRadius: "99px", cursor: "pointer", fontWeight: "600" }}>Confirm Delete</button>
+              <button onClick={() => setConfirmingDelete(false)} style={{ background: "transparent", border: "1px solid #30363d", color: "#8b949e", padding: "8px 16px", borderRadius: "99px", cursor: "pointer" }}>Cancel</button>
+            </div>
+          ) : (
+            <button 
+              onClick={() => setConfirmingDelete(true)} 
+              style={{ background: "transparent", border: "1px solid #da3633", color: "#f85149", padding: "8px 16px", borderRadius: "99px", cursor: "pointer", fontWeight: "600" }}
             >
-              Yes, Delete
+              Delete
             </button>
-            <button
-              onClick={() => setConfirmingDelete(false)}
-              style={{
-                padding: "6px 12px",
-                backgroundColor: "#ccc",
-                border: "none",
-                borderRadius: "4px",
-                cursor: "pointer"
-              }}
-            >
-              Cancel
-            </button>
-          </>
-        ) : (
-          <button
-            onClick={() => setConfirmingDelete(true)}
-            style={{
-              padding: "6px 12px",
-              backgroundColor: "#374151",
-              border: "none",
-              borderRadius: "4px",
-              color: "white",
-              cursor: "pointer"
-            }}
-          >
-            Delete
-          </button>
-        )}
+          )}
+        </div>
 
-        <button
-          onClick={onClose}
-          style={{
-            marginRight: "5px",
-            padding: "6px 12px",
-            backgroundColor: "#ccc",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer"
-          }}
-        >
-          Close
-        </button>
-      </div>
-    </>
+        <button onClick={onClose} style={{ background: "transparent", border: "1px solid #30363d", color: "#8b949e", padding: "8px 16px", borderRadius: "99px", cursor: "pointer" }}>Close</button>
+      </footer>
+    </div>
   );
 }

@@ -3,6 +3,10 @@ import React, { useState } from "react";
 import SkillDetails from "./SkillDetails";
 import SkillEditForm from "./SkillEditForm";
 
+/**
+ * Modernised NodeDialog overlay.
+ * Uses a dark theme and backdrop blur.
+ */
 export default function NodeDialog({ node, onClose, onDelete, onUpdate }) {
   const [isEditing, setIsEditing] = useState(false);
 
@@ -12,35 +16,38 @@ export default function NodeDialog({ node, onClose, onDelete, onUpdate }) {
     <div
       onClick={onClose}
       style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        width: "100vw",
-        height: "100vh",
-        backgroundColor: "rgba(0,0,0,0.5)",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        zIndex: 9999,
-        backdropFilter: "blur(3px)"
+        position: "fixed", inset: 0,
+        backgroundColor: "rgba(0,0,0,0.85)",
+        backdropFilter: "blur(12px)",
+        display: "flex", justifyContent: "center", alignItems: "center",
+        zIndex: 10000,
+        padding: "20px"
       }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
+        className="animate-fade-in-up"
         style={{
-          backgroundColor: "rgba(255,255,255,0.9)",
-          padding: "20px",
-          borderRadius: "10px",
-          width: "420px",
-          maxHeight: "80vh",
-          overflowY: "auto"
+          backgroundColor: "#0d1117",
+          border: "1px solid rgba(255,255,255,0.1)",
+          borderRadius: "28px",
+          width: "100%",
+          maxWidth: "480px",
+          maxHeight: "90vh",
+          overflowY: "auto",
+          boxShadow: "0 24px 64px rgba(0,0,0,0.7)",
+          padding: "32px",
+          position: "relative"
         }}
       >
         {isEditing ? (
           <SkillEditForm
             node={node}
             onCancel={() => setIsEditing(false)}
-            onSave={onUpdate}
+            onSave={(updates) => {
+              onUpdate(updates);
+              setIsEditing(false);
+            }}
           />
         ) : (
           <SkillDetails

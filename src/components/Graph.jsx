@@ -128,7 +128,7 @@ export default function Graph() {
   }, [is3D]);
 
   return (
-    <div className="w-full h-full relative bg-white">
+    <div className="w-full h-full relative" style={{ backgroundColor: "#010409" }}>
       <GraphComponent
         ref={fgRef}
         graphData={graphData}

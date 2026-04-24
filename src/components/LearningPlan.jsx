@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 
@@ -24,51 +24,38 @@ function DayCard({ entry, index }) {
         animationDelay: delay,
         opacity: 0,
         animationFillMode: "forwards",
-        background: "var(--bg-glass)",
+        background: "rgba(255, 255, 255, 0.03)",
         backdropFilter: "blur(20px)",
-        border: `1px solid ${color.border}`,
-        borderRadius: "16px",
+        border: `1px solid rgba(255,255,255,0.06)`,
+        borderRadius: "20px",
         padding: "24px",
         cursor: "pointer",
-        transition: "transform 0.2s ease, box-shadow 0.2s ease",
+        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
         position: "relative",
         overflow: "hidden",
       }}
       onClick={() => setExpanded((p) => !p)}
       onMouseEnter={(e) => {
-        e.currentTarget.style.transform = "translateY(-3px)";
-        e.currentTarget.style.boxShadow = `0 12px 32px rgba(0,0,0,0.3)`;
+        e.currentTarget.style.transform = "translateY(-5px)";
+        e.currentTarget.style.background = "rgba(255, 255, 255, 0.06)";
+        e.currentTarget.style.borderColor = color.border;
+        e.currentTarget.style.boxShadow = `0 20px 40px rgba(0,0,0,0.4), 0 0 20px ${color.bg}`;
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = "none";
+        e.currentTarget.style.background = "rgba(255, 255, 255, 0.03)";
+        e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)";
         e.currentTarget.style.boxShadow = "none";
       }}
       role="button"
-      aria-expanded={expanded}
-      tabIndex={0}
-      onKeyDown={(e) => e.key === "Enter" && setExpanded((p) => !p)}
     >
-      {/* Decorative top line */}
-      <div
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          height: "3px",
-          background: color.text,
-          opacity: 0.6,
-        }}
-      />
-
-      {/* Day badge + skill */}
-      <div style={{ display: "flex", alignItems: "flex-start", gap: "14px", marginBottom: "12px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
+        {/* Day Indicator */}
         <div
           style={{
-            width: "48px",
-            height: "48px",
-            borderRadius: "12px",
+            width: "60px",
+            height: "60px",
+            borderRadius: "16px",
             background: color.bg,
             border: `1px solid ${color.border}`,
             display: "flex",
@@ -76,119 +63,66 @@ function DayCard({ entry, index }) {
             alignItems: "center",
             justifyContent: "center",
             flexShrink: 0,
+            boxShadow: `0 0 15px ${color.bg}`,
           }}
         >
-          <span style={{ fontSize: "10px", fontWeight: "700", color, letterSpacing: "0.04em", textTransform: "uppercase", color: color.text }}>
+          <span style={{ fontSize: "11px", fontWeight: "800", color: color.text, textTransform: "uppercase", letterSpacing: "0.05em" }}>
             Day
           </span>
-          <span style={{ fontSize: "20px", fontWeight: "900", color: color.text, lineHeight: 1 }}>
+          <span style={{ fontSize: "28px", fontWeight: "900", color: "#fff", lineHeight: 1 }}>
             {entry.day}
           </span>
         </div>
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p
-            style={{
-              fontSize: "11px",
-              fontWeight: "600",
-              color: color.text,
-              textTransform: "uppercase",
-              letterSpacing: "0.06em",
-              marginBottom: "4px",
-            }}
-          >
+          <h4 style={{ fontSize: "13px", fontWeight: "700", color: color.text, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "6px" }}>
             {entry.skill}
-          </p>
-          <p
-            style={{
-              fontSize: "15px",
-              fontWeight: "600",
-              color: "var(--text-primary)",
-              lineHeight: "1.4",
-              letterSpacing: "-0.01em",
-            }}
-          >
+          </h4>
+          <p style={{ fontSize: "18px", fontWeight: "600", color: "#f0f6fc", lineHeight: "1.4", letterSpacing: "-0.01em" }}>
             {entry.task}
           </p>
         </div>
+        
+        <div style={{ color: "var(--text-muted)", fontSize: "24px", transition: "transform 0.3s", transform: expanded ? "rotate(90deg)" : "none" }}>
+          ›
+        </div>
       </div>
 
-      {/* Expand indicator */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "6px",
-          fontSize: "12px",
-          color: "var(--text-muted)",
-        }}
-      >
-        <span style={{ transform: expanded ? "rotate(90deg)" : "none", transition: "transform 0.2s", display: "inline-block" }}>
-          ΓÇ║
-        </span>
-        {expanded ? "Hide details" : "See why & resources"}
-      </div>
-
-      {/* Expanded content */}
       {expanded && (
         <div
           className="animate-fade-in"
           style={{
-            marginTop: "16px",
-            paddingTop: "16px",
-            borderTop: `1px solid ${color.border}`,
+            marginTop: "24px",
+            paddingTop: "24px",
+            borderTop: `1px solid rgba(255,255,255,0.08)`,
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Why */}
-          <div style={{ marginBottom: "14px" }}>
-            <p
-              style={{
-                fontSize: "11px",
-                fontWeight: "700",
-                color: color.text,
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-                marginBottom: "6px",
-              }}
-            >
-              ≡ƒÆí Why This Matters
-            </p>
-            <p style={{ fontSize: "14px", color: "var(--text-secondary)", lineHeight: "1.65" }}>
+          <div style={{ marginBottom: "20px" }}>
+            <h5 style={{ fontSize: "12px", fontWeight: "800", color: color.text, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
+              <span>💡</span> Why This Matters
+            </h5>
+            <p style={{ fontSize: "15px", color: "#8b949e", lineHeight: "1.7" }}>
               {entry.why}
             </p>
           </div>
 
-          {/* Resource */}
           {entry.resource && (
             <div
               style={{
-                background: color.bg,
-                border: `1px solid ${color.border}`,
-                borderRadius: "8px",
-                padding: "10px 14px",
+                background: "rgba(255,255,255,0.03)",
+                border: `1px solid rgba(255,255,255,0.1)`,
+                borderRadius: "12px",
+                padding: "16px",
                 display: "flex",
                 alignItems: "center",
-                gap: "8px",
+                gap: "12px",
               }}
             >
-              <span style={{ fontSize: "16px" }}>≡ƒôÜ</span>
+              <div style={{ fontSize: "24px" }}>📚</div>
               <div>
-                <p
-                  style={{
-                    fontSize: "11px",
-                    fontWeight: "700",
-                    color: color.text,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.06em",
-                    marginBottom: "2px",
-                  }}
-                >
-                  Free Resource
-                </p>
-                <p style={{ fontSize: "13px", color: "var(--text-primary)", fontWeight: "500" }}>
-                  {entry.resource}
-                </p>
+                <h6 style={{ fontSize: "11px", fontWeight: "800", color: "#fff", textTransform: "uppercase", letterSpacing: "0.05em" }}>Recommended Resource</h6>
+                <p style={{ fontSize: "14px", color: color.text, fontWeight: "600" }}>{entry.resource}</p>
               </div>
             </div>
           )}
