@@ -1,0 +1,14 @@
+//a formndiv that replaces the add skill dialog search bar and then shows all of the content 
+// from the node that is about to be sent to the backend
+//format:
+/*id;
+  name;
+ description
+  links <- input
+  notes <- input
+  relations = {
+      parentclasses: relations.parentclasses
+      subclasses: relations.subclasses
+      associations: relations.associations
+    };*/
+color <- (color input [only if the node has no existing parrents in our neo4j graph] )
