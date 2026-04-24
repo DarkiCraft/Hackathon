@@ -3,6 +3,29 @@
 import React, { useRef, useEffect, useCallback, useState } from "react";
 import ForceGraph2D from "react-force-graph-2d";
 
+function sanitizeColor(color, fallback = "#8b5cf6") {
+  if (typeof color !== "string") return fallback;
+  const trimmed = color.trim();
+  const isHex = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(trimmed);
+  const isRgb = /^rgba?\(([^)]+)\)$/.test(trimmed);
+  const isHsl = /^hsla?\(([^)]+)\)$/.test(trimmed);
+  return isHex || isRgb || isHsl ? trimmed : fallback;
+}
+
+function colorWithAlpha(color, alpha, fallback = "#8b5cf6") {
+  const safe = sanitizeColor(color, fallback);
+  if (safe.startsWith("#")) {
+    const normalized = safe.length === 4
+      ? `#${safe[1]}${safe[1]}${safe[2]}${safe[2]}${safe[3]}${safe[3]}`
+      : safe;
+    const r = parseInt(normalized.slice(1, 3), 16);
+    const g = parseInt(normalized.slice(3, 5), 16);
+    const b = parseInt(normalized.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+  return safe;
+}
+
 /**
  * Builds graph nodes and links from the SkillMap analysis result.
  *
@@ -12,22 +35,32 @@ import ForceGraph2D from "react-force-graph-2d";
  *   - Purple (#8b5cf6) = goal node (center)
  */
 function buildGraphData(missingSkills, knownSkills) {
+  const toNodeId = (skill, idx, prefix) => {
+    if (skill?.id && String(skill.id).trim()) return String(skill.id);
+    const slug = String(skill?.name || `${prefix}-${idx}`)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    return `${prefix}-${slug || idx}`;
+  };
+
   const nodes = [];
   const links = [];
 
   // Goal node (central)
   nodes.push({
     id: "__goal__",
-    name: "≡ƒÄ» Your Goal",
+    name: "Your Goal",
     type: "goal",
     color: "#8b5cf6",
     size: 10,
   });
 
   // Known skill nodes
-  knownSkills.forEach((skill) => {
+  knownSkills.forEach((skill, i) => {
+    const knownId = toNodeId(skill, i, "known");
     nodes.push({
-      id: skill.id,
+      id: knownId,
       name: skill.name,
       type: "known",
       color: "#10b981",
@@ -37,8 +70,9 @@ function buildGraphData(missingSkills, knownSkills) {
 
   // Missing skill nodes + dependency chain links
   missingSkills.forEach((skill, i) => {
+    const currentId = toNodeId(skill, i, "missing");
     nodes.push({
-      id: skill.id,
+      id: currentId,
       name: skill.name,
       why: skill.why,
       type: "missing",
@@ -47,29 +81,30 @@ function buildGraphData(missingSkills, knownSkills) {
       order: skill.order || i + 1,
     });
 
-    // Chain: each missing skill ΓåÆ the next one in the prerequisite chain
+    // Chain: each missing skill links to next prerequisite
     if (i < missingSkills.length - 1) {
+      const nextId = toNodeId(missingSkills[i + 1], i + 1, "missing");
       links.push({
-        source: skill.id,
-        target: missingSkills[i + 1].id,
+        source: currentId,
+        target: nextId,
         color: "rgba(239,68,68,0.45)",
       });
     }
   });
 
-  // Last missing skill ΓåÆ goal
+  // Last missing skill links to goal
   if (missingSkills.length > 0) {
     links.push({
-      source: missingSkills[missingSkills.length - 1].id,
+      source: toNodeId(missingSkills[missingSkills.length - 1], missingSkills.length - 1, "missing"),
       target: "__goal__",
       color: "rgba(139,92,246,0.5)",
     });
   }
 
-  // Known skills ΓåÆ goal
-  knownSkills.forEach((skill) => {
+  // Known skills link to goal
+  knownSkills.forEach((skill, i) => {
     links.push({
-      source: skill.id,
+      source: toNodeId(skill, i, "known"),
       target: "__goal__",
       color: "rgba(16,185,129,0.35)",
     });
@@ -142,6 +177,11 @@ export default function SkillMapGraph({ missingSkills = [], knownSkills = [] }) 
     []
   );
 
+  const recenterGraph = useCallback(() => {
+    if (!fgRef.current) return;
+    fgRef.current.zoomToFit(600, 40);
+  }, []);
+
   // Custom node painter
   const paintNode = useCallback((node, ctx, globalScale) => {
     // Prevent crashes if coordinates are not yet numbers (NaN, undefined, etc.)
@@ -150,20 +190,30 @@ export default function SkillMapGraph({ missingSkills = [], knownSkills = [] }) 
     const size = node.size || 6;
     const label = node.name;
     const fontSize = Math.max(10, 13 / globalScale);
+    const safeColor = (() => {
+      const c = typeof node.color === "string" ? node.color.trim() : "";
+      const isHex = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(c);
+      const isRgb = /^rgba?\(([^)]+)\)$/.test(c);
+      const isHsl = /^hsla?\(([^)]+)\)$/.test(c);
+      return isHex || isRgb || isHsl ? c : "#8b5cf6";
+    })();
 
     // Glow
     ctx.beginPath();
     ctx.arc(node.x, node.y, size + 4, 0, 2 * Math.PI);
     const glow = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, size + 4);
-    glow.addColorStop(0, node.color + "55");
-    glow.addColorStop(1, node.color + "00");
+    const glowColor = safeColor.startsWith("#")
+      ? colorWithAlpha(safeColor, 0.33)
+      : safeColor;
+    glow.addColorStop(0, glowColor);
+    glow.addColorStop(1, colorWithAlpha(safeColor, 0));
     ctx.fillStyle = glow;
     ctx.fill();
 
     // Node circle
     ctx.beginPath();
     ctx.arc(node.x, node.y, size, 0, 2 * Math.PI);
-    ctx.fillStyle = node.color;
+    ctx.fillStyle = safeColor;
     ctx.fill();
     ctx.strokeStyle = "rgba(255,255,255,0.25)";
     ctx.lineWidth = 1.2 / globalScale;
@@ -199,9 +249,26 @@ export default function SkillMapGraph({ missingSkills = [], knownSkills = [] }) 
           position: "relative",
           overflow: "hidden",
           padding: "0",
-          background: "rgba(10,15,30,0.6)",
+          background: "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
         }}
       >
+        <div
+          style={{
+            position: "absolute",
+            top: 12,
+            right: 12,
+            zIndex: 12,
+            display: "flex",
+            gap: "8px",
+          }}
+        >
+          <div className="graph-soft-pill">Missing: {missingSkills.length}</div>
+          <div className="graph-soft-pill">Known: {knownSkills.length}</div>
+          <button className="graph-soft-pill" onClick={recenterGraph} style={{ cursor: "pointer" }}>
+            Recenter
+          </button>
+        </div>
+
         {/* Tooltip */}
         {tooltip && tooltip.type === "missing" && (
           <div
@@ -211,15 +278,16 @@ export default function SkillMapGraph({ missingSkills = [], knownSkills = [] }) 
               top: "16px",
               left: "16px",
               zIndex: 10,
-              background: "rgba(10,15,30,0.9)",
-              border: "1px solid rgba(239,68,68,0.4)",
+              background: "#ffffff",
+              border: "1px solid rgba(248,113,113,0.45)",
               borderRadius: "10px",
               padding: "12px 16px",
               maxWidth: "260px",
               pointerEvents: "none",
+              boxShadow: "0 8px 24px rgba(15,23,42,0.12)",
             }}
           >
-            <p style={{ fontSize: "13px", fontWeight: "700", color: "#fca5a5", marginBottom: "4px" }}>
+            <p style={{ fontSize: "13px", fontWeight: "700", color: "#b91c1c", marginBottom: "4px" }}>
               {tooltip.name}
             </p>
             {tooltip.why && (
@@ -238,12 +306,14 @@ export default function SkillMapGraph({ missingSkills = [], knownSkills = [] }) 
           backgroundColor="transparent"
           nodeCanvasObject={paintNode}
           nodeCanvasObjectMode={() => "replace"}
-          linkColor={(link) => link.color || "rgba(255,255,255,0.15)"}
-          linkWidth={1.5}
+          linkColor={(link) => link.color || "rgba(100,116,139,0.28)"}
+          linkWidth={2}
+          linkCurvature={0.09}
           linkDirectionalArrowLength={6}
           linkDirectionalArrowRelPos={1}
           linkDirectionalParticles={2}
           linkDirectionalParticleSpeed={0.004}
+          linkDirectionalParticleWidth={2}
           linkDirectionalParticleColor={(link) => link.color || "#8b5cf6"}
           onNodeHover={handleNodeHover}
           onNodeClick={handleNodeClick}
@@ -266,7 +336,7 @@ export default function SkillMapGraph({ missingSkills = [], knownSkills = [] }) 
         <LegendDot color="#10b981" label="Known skill" />
         <LegendDot color="#8b5cf6" label="Your goal" />
         <span style={{ fontSize: "12px", color: "var(--text-muted)", marginLeft: "auto" }}>
-          Click a node to zoom ┬╖ Hover for details
+          Click a node to zoom - hover for details
         </span>
       </div>
     </div>

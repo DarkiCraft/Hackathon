@@ -14,28 +14,28 @@ import LearningPlan from "@/components/LearningPlan";
 import { addSkill } from "@/lib/skillStore";
 
 export default function HomePage() {
-  const [activeTab, setActiveTab] = useState(() => {
-    if (typeof window !== "undefined") return localStorage.getItem("skillgraph_tab") || "graph";
-    return "graph";
-  });
+  const [activeTab, setActiveTab] = useState("graph");
 
   // SkillMap state
-  const [results, setResults] = useState(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("skillmap_results");
-      return saved ? JSON.parse(saved) : null;
-    }
-    return null;
-  });
+  const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [formData, setFormData] = useState(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("skillmap_form");
-      return saved ? JSON.parse(saved) : null;
+  const [formData, setFormData] = useState(null);
+
+  // Load persisted state only on client after mount to avoid hydration mismatch
+  React.useEffect(() => {
+    try {
+      const savedTab = localStorage.getItem("skillgraph_tab");
+      const savedResults = localStorage.getItem("skillmap_results");
+      const savedForm = localStorage.getItem("skillmap_form");
+
+      if (savedTab) setActiveTab(savedTab);
+      if (savedResults) setResults(JSON.parse(savedResults));
+      if (savedForm) setFormData(JSON.parse(savedForm));
+    } catch (e) {
+      console.error("Failed to restore saved app state:", e);
     }
-    return null;
-  });
+  }, []);
 
   // Persist State
   React.useEffect(() => {
@@ -177,7 +177,7 @@ export default function HomePage() {
     borderBottom: activeTab === tab ? "2px solid #8b5cf6" : "2px solid transparent",
     backgroundColor: "transparent",
     fontWeight: activeTab === tab ? "700" : "500",
-    color: activeTab === tab ? "#f1f5f9" : "#94a3b8",
+    color: activeTab === tab ? "#0f172a" : "#64748b",
     cursor: "pointer",
     fontSize: "14px",
     letterSpacing: "0.02em",
@@ -185,19 +185,19 @@ export default function HomePage() {
     display: "flex",
     alignItems: "center",
     gap: "8px",
-    background: activeTab === tab ? "rgba(139, 92, 246, 0.05)" : "transparent",
+    background: activeTab === tab ? "#eef2ff" : "transparent",
   });
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", width: "100vw", height: "100vh", backgroundColor: "#010409", color: "#f1f5f9" }}>
+    <div style={{ display: "flex", flexDirection: "column", width: "100vw", height: "100vh", backgroundColor: "#f8fafc", color: "#0f172a" }}>
 
       {/* ── NAV BAR ── */}
       <nav style={{
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
-        backgroundColor: "rgba(1, 4, 9, 0.8)",
+        borderBottom: "1px solid rgba(15, 23, 42, 0.08)",
+        backgroundColor: "rgba(255, 255, 255, 0.92)",
         backdropFilter: "blur(20px)",
         padding: "0 40px",
         height: "64px",
@@ -208,7 +208,7 @@ export default function HomePage() {
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <span style={{ fontSize: "24px" }}>🧭</span>
-          <span style={{ fontWeight: "900", fontSize: "20px", letterSpacing: "-0.02em", background: "linear-gradient(to right, #fff, #94a3b8)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+          <span style={{ fontWeight: "900", fontSize: "20px", letterSpacing: "-0.02em", background: "linear-gradient(to right, #0f172a, #6366f1)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
             SkillGraph
           </span>
         </div>
@@ -234,12 +234,12 @@ export default function HomePage() {
 
       {/* ── SKILL MAP (AI) TAB ── */}
       {activeTab === "skillmap" && (
-        <div style={{ flex: 1, overflowY: "auto", backgroundColor: "#010409", backgroundImage: "radial-gradient(circle at 50% -20%, #161b22, #010409)" }}>
+        <div style={{ flex: 1, overflowY: "auto", backgroundColor: "#f8fafc", backgroundImage: "radial-gradient(circle at 50% -20%, #eef2ff, #f8fafc)" }}>
           <header style={{ textAlign: "center", padding: "80px 24px 60px", maxWidth: "800px", margin: "0 auto" }}>
             <h1 className="gradient-text" style={{ fontSize: "clamp(40px, 8vw, 72px)", fontWeight: "900", lineHeight: "1.1", marginBottom: "20px", letterSpacing: "-0.03em" }}>
               Skill Gap Analyzer
             </h1>
-            <p style={{ color: "#8b949e", fontSize: "18px", lineHeight: "1.6", maxWidth: "600px", margin: "0 auto" }}>
+            <p style={{ color: "#475569", fontSize: "18px", lineHeight: "1.6", maxWidth: "600px", margin: "0 auto" }}>
               Tell us your goal and what you already know — we&apos;ll find the exact skills you&apos;re missing to bridge the gap.
             </p>
           </header>
@@ -252,7 +252,7 @@ export default function HomePage() {
 
           {error && (
             <div style={{ maxWidth: "700px", margin: "0 auto 32px", padding: "0 24px" }}>
-              <div style={{ background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.3)", borderRadius: "12px", padding: "16px 20px", color: "#ffa39e", display: "flex", gap: "12px", alignItems: "center" }}>
+              <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: "12px", padding: "16px 20px", color: "#b91c1c", display: "flex", gap: "12px", alignItems: "center" }}>
                 <span style={{ fontSize: "20px" }}>⚠️</span>
                 <span style={{ fontWeight: "500" }}>{error}</span>
               </div>
@@ -260,7 +260,7 @@ export default function HomePage() {
           )}
 
           {loading && (
-            <div style={{ textAlign: "center", padding: "80px 24px", color: "#8b949e" }}>
+            <div style={{ textAlign: "center", padding: "80px 24px", color: "#64748b" }}>
               <div className="animate-spin" style={{ fontSize: "48px", marginBottom: "24px", display: "inline-block" }}>⚙️</div>
               <p style={{ fontSize: "18px", fontWeight: "500", letterSpacing: "0.02em" }}>Analyzing your path with Gemini AI...</p>
             </div>
@@ -270,12 +270,12 @@ export default function HomePage() {
             <div className="animate-fade-in" style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 24px 120px" }}>
               
               {/* Summary Hero */}
-              <div className="glass-card" style={{ padding: "40px", marginBottom: "64px", position: "relative", overflow: "hidden" }}>
+              <div className="glass-card" style={{ padding: "40px", marginBottom: "64px", position: "relative", overflow: "hidden", background: "#ffffff" }}>
                 <div style={{ position: "absolute", top: 0, left: 0, width: "4px", height: "100%", background: "var(--color-primary)" }} />
-                <h2 style={{ fontSize: "24px", fontWeight: "800", color: "#f0f6fc", marginBottom: "16px", display: "flex", alignItems: "center", gap: "12px" }}>
+                <h2 style={{ fontSize: "24px", fontWeight: "800", color: "#0f172a", marginBottom: "16px", display: "flex", alignItems: "center", gap: "12px" }}>
                   <span style={{ fontSize: "28px" }}>📝</span> The Analysis
                 </h2>
-                <p style={{ fontSize: "18px", lineHeight: "1.7", color: "#c9d1d9", fontWeight: "400" }}>
+                <p style={{ fontSize: "18px", lineHeight: "1.7", color: "#334155", fontWeight: "400" }}>
                   {results.summary}
                 </p>
                 
@@ -327,12 +327,12 @@ export default function HomePage() {
                 </section>
               </div>
 
-              <div style={{ textAlign: "center", marginTop: "100px", paddingTop: "60px", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+              <div style={{ textAlign: "center", marginTop: "100px", paddingTop: "60px", borderTop: "1px solid rgba(15,23,42,0.08)" }}>
                 <button
                   onClick={() => { setResults(null); setError(null); }}
-                  style={{ background: "transparent", color: "#8b949e", border: "1px solid #484f58", padding: "12px 32px", borderRadius: "99px", cursor: "pointer", fontWeight: "600", transition: "all 0.2s" }}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = "#8b949e"}
-                  onMouseLeave={e => e.currentTarget.style.borderColor = "#484f58"}
+                  style={{ background: "transparent", color: "#475569", border: "1px solid #cbd5e1", padding: "12px 32px", borderRadius: "99px", cursor: "pointer", fontWeight: "600", transition: "all 0.2s" }}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = "#64748b"}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = "#cbd5e1"}
                 >
                   🔄 Reset and Try Another Goal
                 </button>

@@ -3,13 +3,13 @@
 import React, { useState } from "react";
 
 const DAY_COLORS = [
-  { bg: "rgba(139,92,246,0.15)", border: "rgba(139,92,246,0.35)", text: "#a78bfa" },
-  { bg: "rgba(6,182,212,0.12)",  border: "rgba(6,182,212,0.3)",   text: "#67e8f9" },
-  { bg: "rgba(16,185,129,0.12)", border: "rgba(16,185,129,0.3)",  text: "#6ee7b7" },
-  { bg: "rgba(245,158,11,0.12)", border: "rgba(245,158,11,0.3)",  text: "#fcd34d" },
-  { bg: "rgba(239,68,68,0.10)",  border: "rgba(239,68,68,0.28)",  text: "#fca5a5" },
-  { bg: "rgba(139,92,246,0.15)", border: "rgba(139,92,246,0.35)", text: "#a78bfa" },
-  { bg: "rgba(6,182,212,0.12)",  border: "rgba(6,182,212,0.3)",   text: "#67e8f9" },
+  { bg: "#ede9fe", border: "#c4b5fd", text: "#6d28d9" },
+  { bg: "#e0f2fe", border: "#7dd3fc", text: "#0e7490" },
+  { bg: "#dcfce7", border: "#86efac", text: "#15803d" },
+  { bg: "#fef3c7", border: "#fcd34d", text: "#b45309" },
+  { bg: "#ffe4e6", border: "#fda4af", text: "#be123c" },
+  { bg: "#ede9fe", border: "#c4b5fd", text: "#6d28d9" },
+  { bg: "#e0f2fe", border: "#7dd3fc", text: "#0e7490" },
 ];
 
 function DayCard({ entry, index }) {
@@ -24,9 +24,8 @@ function DayCard({ entry, index }) {
         animationDelay: delay,
         opacity: 0,
         animationFillMode: "forwards",
-        background: "rgba(255, 255, 255, 0.03)",
-        backdropFilter: "blur(20px)",
-        border: `1px solid rgba(255,255,255,0.06)`,
+        background: "#ffffff",
+        border: "1px solid #e2e8f0",
         borderRadius: "20px",
         padding: "24px",
         cursor: "pointer",
@@ -37,14 +36,14 @@ function DayCard({ entry, index }) {
       onClick={() => setExpanded((p) => !p)}
       onMouseEnter={(e) => {
         e.currentTarget.style.transform = "translateY(-5px)";
-        e.currentTarget.style.background = "rgba(255, 255, 255, 0.06)";
+        e.currentTarget.style.background = "#f8fafc";
         e.currentTarget.style.borderColor = color.border;
-        e.currentTarget.style.boxShadow = `0 20px 40px rgba(0,0,0,0.4), 0 0 20px ${color.bg}`;
+        e.currentTarget.style.boxShadow = "0 14px 24px rgba(15,23,42,0.1)";
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = "none";
-        e.currentTarget.style.background = "rgba(255, 255, 255, 0.03)";
-        e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)";
+        e.currentTarget.style.background = "#ffffff";
+        e.currentTarget.style.borderColor = "#e2e8f0";
         e.currentTarget.style.boxShadow = "none";
       }}
       role="button"
@@ -63,13 +62,13 @@ function DayCard({ entry, index }) {
             alignItems: "center",
             justifyContent: "center",
             flexShrink: 0,
-            boxShadow: `0 0 15px ${color.bg}`,
+            boxShadow: "none",
           }}
         >
           <span style={{ fontSize: "11px", fontWeight: "800", color: color.text, textTransform: "uppercase", letterSpacing: "0.05em" }}>
             Day
           </span>
-          <span style={{ fontSize: "28px", fontWeight: "900", color: "#fff", lineHeight: 1 }}>
+          <span style={{ fontSize: "28px", fontWeight: "900", color: "#0f172a", lineHeight: 1 }}>
             {entry.day}
           </span>
         </div>
@@ -78,7 +77,7 @@ function DayCard({ entry, index }) {
           <h4 style={{ fontSize: "13px", fontWeight: "700", color: color.text, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "6px" }}>
             {entry.skill}
           </h4>
-          <p style={{ fontSize: "18px", fontWeight: "600", color: "#f0f6fc", lineHeight: "1.4", letterSpacing: "-0.01em" }}>
+          <p style={{ fontSize: "18px", fontWeight: "600", color: "#0f172a", lineHeight: "1.4", letterSpacing: "-0.01em" }}>
             {entry.task}
           </p>
         </div>
@@ -94,15 +93,15 @@ function DayCard({ entry, index }) {
           style={{
             marginTop: "24px",
             paddingTop: "24px",
-            borderTop: `1px solid rgba(255,255,255,0.08)`,
+            borderTop: "1px solid #e2e8f0",
           }}
           onClick={(e) => e.stopPropagation()}
         >
           <div style={{ marginBottom: "20px" }}>
             <h5 style={{ fontSize: "12px", fontWeight: "800", color: color.text, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
-              <span>💡</span> Why This Matters
+              <span>Tip</span> Why This Matters
             </h5>
-            <p style={{ fontSize: "15px", color: "#8b949e", lineHeight: "1.7" }}>
+            <p style={{ fontSize: "15px", color: "#64748b", lineHeight: "1.7" }}>
               {entry.why}
             </p>
           </div>
@@ -110,8 +109,8 @@ function DayCard({ entry, index }) {
           {entry.resource && (
             <div
               style={{
-                background: "rgba(255,255,255,0.03)",
-                border: `1px solid rgba(255,255,255,0.1)`,
+                background: "#f8fafc",
+                border: "1px solid #e2e8f0",
                 borderRadius: "12px",
                 padding: "16px",
                 display: "flex",
@@ -119,9 +118,9 @@ function DayCard({ entry, index }) {
                 gap: "12px",
               }}
             >
-              <div style={{ fontSize: "24px" }}>📚</div>
+              <div style={{ fontSize: "24px" }}>Resource</div>
               <div>
-                <h6 style={{ fontSize: "11px", fontWeight: "800", color: "#fff", textTransform: "uppercase", letterSpacing: "0.05em" }}>Recommended Resource</h6>
+                <h6 style={{ fontSize: "11px", fontWeight: "800", color: "#0f172a", textTransform: "uppercase", letterSpacing: "0.05em" }}>Recommended Resource</h6>
                 <p style={{ fontSize: "14px", color: color.text, fontWeight: "600" }}>{entry.resource}</p>
               </div>
             </div>
@@ -167,7 +166,7 @@ export default function LearningPlan({ days = [] }) {
               textTransform: "capitalize",
             }}
           >
-            {v === "grid" ? "Γè₧ Grid" : "Γÿ░ List"}
+            {v === "grid" ? "Grid" : "List"}
           </button>
         ))}
       </div>

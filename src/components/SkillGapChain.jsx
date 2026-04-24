@@ -17,7 +17,7 @@ function ChainArrow() {
       }}
       aria-hidden="true"
     >
-      ΓåÆ
+      {"->"}
     </div>
   );
 }
@@ -31,11 +31,11 @@ function MissingSkillCard({ skill, index, isActive, onClick }) {
       style={{
         position: "relative",
         background: isActive
-          ? "rgba(239, 68, 68, 0.2)"
-          : "rgba(255, 255, 255, 0.04)",
+          ? "rgba(254, 226, 226, 0.9)"
+          : "#ffffff",
         border: isActive
-          ? "1px solid rgba(239, 68, 68, 0.5)"
-          : "1px solid rgba(255, 255, 255, 0.1)",
+          ? "1px solid rgba(248, 113, 113, 0.7)"
+          : "1px solid #e2e8f0",
         borderRadius: "16px",
         padding: "16px 20px",
         cursor: "pointer",
@@ -45,19 +45,19 @@ function MissingSkillCard({ skill, index, isActive, onClick }) {
         maxWidth: "220px",
         transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
         fontFamily: "inherit",
-        boxShadow: isActive ? "0 10px 30px rgba(239, 68, 68, 0.25)" : "none",
+        boxShadow: isActive ? "0 10px 24px rgba(239, 68, 68, 0.2)" : "0 4px 10px rgba(15,23,42,0.06)",
       }}
       onMouseEnter={(e) => {
         if (!isActive) {
-          e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
-          e.currentTarget.style.borderColor = "rgba(239, 68, 68, 0.3)";
+          e.currentTarget.style.background = "#fff1f2";
+          e.currentTarget.style.borderColor = "rgba(248, 113, 113, 0.6)";
           e.currentTarget.style.transform = "translateY(-4px)";
         }
       }}
       onMouseLeave={(e) => {
         if (!isActive) {
-          e.currentTarget.style.background = "rgba(255, 255, 255, 0.04)";
-          e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
+          e.currentTarget.style.background = "#ffffff";
+          e.currentTarget.style.borderColor = "#e2e8f0";
           e.currentTarget.style.transform = "none";
         }
       }}
@@ -85,7 +85,7 @@ function MissingSkillCard({ skill, index, isActive, onClick }) {
         style={{
           fontSize: "15px",
           fontWeight: "700",
-          color: isActive ? "#fff" : "#fca5a5",
+          color: isActive ? "#991b1b" : "#b91c1c",
           lineHeight: "1.3",
         }}
       >
@@ -113,7 +113,7 @@ function KnownSkillPill({ skill, index }) {
         color: "#6ee7b7",
       }}
     >
-      <span style={{ fontSize: "10px" }}>Γ£ô</span>
+      <span style={{ fontSize: "10px" }}>✓</span>
       {skill.name}
     </div>
   );
@@ -129,7 +129,7 @@ function SkillDetailPanel({ skill, onClose }) {
         marginTop: "20px",
         padding: "24px",
         border: "1px solid rgba(239,68,68,0.3)",
-        background: "rgba(239,68,68,0.06)",
+        background: "#fff1f2",
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -141,7 +141,7 @@ function SkillDetailPanel({ skill, onClose }) {
             style={{
               fontSize: "18px",
               fontWeight: "700",
-              color: "#fca5a5",
+              color: "#b91c1c",
               marginBottom: "10px",
               letterSpacing: "-0.01em",
             }}
@@ -166,7 +166,7 @@ function SkillDetailPanel({ skill, onClose }) {
             padding: "0 0 0 12px",
           }}
         >
-          ├ù
+          x
         </button>
       </div>
     </div>
@@ -229,18 +229,18 @@ export default function SkillGapChain({ missingSkills = [], knownSkills = [] }) 
           <div
             style={{
               background: "linear-gradient(135deg, rgba(139,92,246,0.2), rgba(6,182,212,0.2))",
-              border: "1px solid rgba(139,92,246,0.4)",
+              border: "1px solid rgba(99,102,241,0.35)",
               borderRadius: "12px",
               padding: "14px 20px",
               flexShrink: 0,
               textAlign: "center",
             }}
           >
-            <p style={{ fontSize: "11px", color: "var(--color-primary-light)", fontWeight: "700", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            <p style={{ fontSize: "11px", color: "#4f46e5", fontWeight: "700", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.06em" }}>
               Your Goal
             </p>
             <p style={{ fontSize: "13px", fontWeight: "700", color: "var(--text-primary)" }}>
-              ≡ƒÄ» Achievement
+              Achievement
             </p>
           </div>
         </div>
@@ -264,7 +264,7 @@ export default function SkillGapChain({ missingSkills = [], knownSkills = [] }) 
               marginBottom: "10px",
             }}
           >
-            Γ£à Skills You Already Have
+            Skills You Already Have
           </p>
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
             {knownSkills.map((skill, i) => (

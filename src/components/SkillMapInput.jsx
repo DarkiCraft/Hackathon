@@ -58,7 +58,7 @@ export default function SkillMapInput({ onSubmit, loading, hasResults }) {
           Tell us about your learning goal
         </h2>
         <p style={{ fontSize: "14px", color: "var(--text-muted)" }}>
-          Be specific ΓÇö the more detail you give, the better your SkillMap.
+          Be specific - the more detail you give, the better your SkillMap.
         </p>
       </div>
 
@@ -78,7 +78,7 @@ export default function SkillMapInput({ onSubmit, loading, hasResults }) {
               transition: "color 0.2s",
             }}
           >
-            ≡ƒÄ» Your Goal
+            Your Goal
           </label>
           <input
             id="goal-input"
@@ -109,7 +109,7 @@ export default function SkillMapInput({ onSubmit, loading, hasResults }) {
               transition: "color 0.2s",
             }}
           >
-            Γ£à What You Already Know
+            What You Already Know
           </label>
           <textarea
             id="known-skills-input"
@@ -139,7 +139,7 @@ export default function SkillMapInput({ onSubmit, loading, hasResults }) {
               transition: "color 0.2s",
             }}
           >
-            ΓÅ▒∩╕Å Time Available Per Day
+            Time Available Per Day
           </label>
           <input
             id="time-input"
@@ -161,7 +161,7 @@ export default function SkillMapInput({ onSubmit, loading, hasResults }) {
           id="skillmap-submit-btn"
           className="btn-primary"
           disabled={!isValid || loading}
-          style={{ width: "100%", fontSize: "16px", padding: "16px" }}
+          style={{ width: "100%", fontSize: "16px", padding: "16px", borderRadius: "12px" }}
         >
           {loading ? (
             <>
@@ -179,7 +179,7 @@ export default function SkillMapInput({ onSubmit, loading, hasResults }) {
               Analyzing your skill gap...
             </>
           ) : (
-            <>≡ƒº¡ Generate My SkillMap</>
+            <>Generate My Skill Map</>
           )}
         </button>
       </form>
@@ -204,23 +204,26 @@ export default function SkillMapInput({ onSubmit, loading, hasResults }) {
                 onClick={() => applyExample(ex)}
                 disabled={loading}
                 style={{
-                  background: "var(--bg-surface)",
-                  border: "1px solid var(--border-subtle)",
+                  background: "#ffffff",
+                  border: "1px solid #dbe2ea",
                   borderRadius: "999px",
-                  padding: "5px 14px",
+                  padding: "7px 14px",
                   fontSize: "12px",
-                  color: "var(--text-secondary)",
+                  color: "#334155",
                   cursor: "pointer",
                   transition: "all 0.2s",
                   fontFamily: "inherit",
+                  fontWeight: 600,
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "var(--color-primary)";
-                  e.currentTarget.style.color = "var(--color-primary-light)";
+                  e.currentTarget.style.borderColor = "#818cf8";
+                  e.currentTarget.style.background = "#eef2ff";
+                  e.currentTarget.style.color = "#4f46e5";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "var(--border-subtle)";
-                  e.currentTarget.style.color = "var(--text-secondary)";
+                  e.currentTarget.style.borderColor = "#dbe2ea";
+                  e.currentTarget.style.background = "#ffffff";
+                  e.currentTarget.style.color = "#334155";
                 }}
               >
                 {ex.goal}

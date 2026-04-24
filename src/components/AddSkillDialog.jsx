@@ -125,7 +125,7 @@ export default function AddSkillDialog({ onClose, onSkillAdded, existingSkills =
         {/* Header */}
         <header style={{ marginBottom: "24px" }}>
           <h2 style={{ fontSize: "24px", fontWeight: "900", color: "#f0f6fc", marginBottom: "4px" }}>Add Skill</h2>
-          <p style={{ fontSize: "14px", color: "#8b949e" }}>Step {step} of 2 ΓÇö {step === 1 ? "Select from ESCO" : "Review details"}</p>
+          <p style={{ fontSize: "14px", color: "#8b949e" }}>Step {step} of 2 - {step === 1 ? "Select from ESCO" : "Review details"}</p>
         </header>
 
         {step === 1 ? (
@@ -172,7 +172,7 @@ export default function AddSkillDialog({ onClose, onSkillAdded, existingSkills =
                 disabled={!selectedSkill}
                 className="btn-primary"
               >
-                Next Step ΓÜ¬
+                Next Step
               </button>
             </div>
           </div>
@@ -201,8 +201,8 @@ export default function AddSkillDialog({ onClose, onSkillAdded, existingSkills =
               </div>
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "32px" }}>
-                <button onClick={() => setStep(1)} style={{ background: "transparent", border: "1px solid #30363d", color: "#c9d1d9", padding: "10px 24px", borderRadius: "99px", cursor: "pointer", fontWeight: "600" }}>ΓÜÖ Back</button>
-                <button onClick={handleConfirm} className="btn-primary">Add to Graph Γ£ô</button>
+                <button onClick={() => setStep(1)} style={{ background: "transparent", border: "1px solid #30363d", color: "#c9d1d9", padding: "10px 24px", borderRadius: "99px", cursor: "pointer", fontWeight: "600" }}>Back</button>
+                <button onClick={handleConfirm} className="btn-primary">Add to Graph</button>
               </div>
             </div>
           )

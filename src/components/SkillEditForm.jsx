@@ -98,7 +98,7 @@ export default function SkillEditForm({ node, onCancel, onSave }) {
                 onClick={() => removeLink(i)}
                 style={{ background: "rgba(239, 68, 68, 0.1)", border: "none", color: "#f85149", padding: "8px", borderRadius: "8px", cursor: "pointer" }}
               >
-                Γ£ê
+                ×
               </button>
             </div>
           ))}
