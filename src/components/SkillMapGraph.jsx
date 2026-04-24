@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useRef, useEffect, useCallback, useState } from "react";
 import ForceGraph2D from "react-force-graph-2d";
@@ -144,6 +144,9 @@ export default function SkillMapGraph({ missingSkills = [], knownSkills = [] }) 
 
   // Custom node painter
   const paintNode = useCallback((node, ctx, globalScale) => {
+    // Prevent crashes if coordinates are not yet numbers (NaN, undefined, etc.)
+    if (typeof node.x !== "number" || typeof node.y !== "number") return;
+
     const size = node.size || 6;
     const label = node.name;
     const fontSize = Math.max(10, 13 / globalScale);

@@ -136,6 +136,10 @@ export default function Graph() {
         nodeColor={nodeColor}
         linkColor={(link) => link.color}
         linkWidth={(link) => link.width}
+        linkDirectionalArrowLength={6}
+        linkDirectionalArrowRelPos={1}
+        linkDirectionalParticles={1}
+        linkDirectionalParticleSpeed={0.005}
         onNodeClick={handleNodeClick}
         onNodeHover={setHoverNode}
         nodeRelSize={6}

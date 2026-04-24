@@ -9,17 +9,48 @@ const Graph = dynamic(() => import("@/components/Graph"), { ssr: false });
 // SkillMap components (from skillmap-mvp branch)
 import SkillMapInput from "@/components/SkillMapInput";
 import SkillGapChain from "@/components/SkillGapChain";
-import SkillMapGraph from "@/components/SkillMapGraph";
+const SkillMapGraph = dynamic(() => import("@/components/SkillMapGraph"), { ssr: false });
 import LearningPlan from "@/components/LearningPlan";
+import { addSkill } from "@/lib/skillStore";
 
 export default function HomePage() {
-  const [activeTab, setActiveTab] = useState("graph");
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== "undefined") return localStorage.getItem("skillgraph_tab") || "graph";
+    return "graph";
+  });
 
   // SkillMap state
-  const [results, setResults] = useState(null);
+  const [results, setResults] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("skillmap_results");
+      return saved ? JSON.parse(saved) : null;
+    }
+    return null;
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [formData, setFormData] = useState(null);
+  const [formData, setFormData] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("skillmap_form");
+      return saved ? JSON.parse(saved) : null;
+    }
+    return null;
+  });
+
+  // Persist State
+  React.useEffect(() => {
+    localStorage.setItem("skillgraph_tab", activeTab);
+  }, [activeTab]);
+
+  React.useEffect(() => {
+    if (results) localStorage.setItem("skillmap_results", JSON.stringify(results));
+    else localStorage.removeItem("skillmap_results");
+  }, [results]);
+
+  React.useEffect(() => {
+    if (formData) localStorage.setItem("skillmap_form", JSON.stringify(formData));
+    else localStorage.removeItem("skillmap_form");
+  }, [formData]);
 
   const handleAnalyze = async ({ goal, knownSkills, timeAvailable }) => {
     setLoading(true);
@@ -40,6 +71,73 @@ export default function HomePage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleImportToGraph = () => {
+    if (!results) return;
+    const { missingSkills, knownSkills } = results;
+    const goalTitle = formData?.goal || "My Goal";
+    const goalId = `goal_${goalTitle.toLowerCase().replace(/\s+/g, "_")}`;
+    let addedCount = 0;
+
+    // 1. Add Goal Node
+    const goalPayload = {
+      id: goalId,
+      name: `🎯 Goal: ${goalTitle}`,
+      description: "Target goal for this analysis.",
+      color: "#8b5cf6", // purple for goal
+      relations: { parentclasses: [], subclasses: [], associations: [] }
+    };
+    if (addSkill(goalPayload).success) addedCount++;
+
+    // 2. Add Known Skills (linked to Goal)
+    knownSkills.forEach(skill => {
+      const skillPayload = {
+        id: `ai_${skill.name.toLowerCase().replace(/\s+/g, "_")}`,
+        name: skill.name,
+        description: "Skill you already know.",
+        color: "#10b981", // green for known
+        relations: { 
+          parentclasses: [], 
+          subclasses: [{ id: goalId, name: goalPayload.name }], 
+          associations: [] 
+        }
+      };
+      const res = addSkill(skillPayload);
+      if (res.success) addedCount++;
+    });
+
+    // 3. Add Missing Skills
+    missingSkills.forEach((skill, i) => {
+      const skillId = `ai_${skill.name.toLowerCase().replace(/\s+/g, "_")}`;
+      const skillPayload = {
+        id: skillId,
+        name: skill.name,
+        description: skill.why,
+        color: "#ef4444", // red for missing
+        relations: { parentclasses: [], subclasses: [], associations: [] }
+      };
+
+      if (i < missingSkills.length - 1) {
+        // Link to next missing skill
+        skillPayload.relations.subclasses.push({
+          id: `ai_${missingSkills[i + 1].name.toLowerCase().replace(/\s+/g, "_")}`,
+          name: missingSkills[i + 1].name
+        });
+      } else {
+        // Final missing skill links to Goal
+        skillPayload.relations.subclasses.push({
+          id: goalId,
+          name: goalPayload.name
+        });
+      }
+
+      const res = addSkill(skillPayload);
+      if (res.success) addedCount++;
+    });
+
+    alert(`Successfully added ${addedCount} skills to your Skill Graph!`);
+    setActiveTab("graph");
   };
 
   const tabStyle = (tab) => ({
@@ -118,6 +216,27 @@ export default function HomePage() {
 
           {results && !loading && (
             <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "0 24px 80px" }}>
+              <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "20px", gap: "12px" }}>
+                <button
+                  onClick={handleImportToGraph}
+                  style={{
+                    padding: "10px 20px",
+                    backgroundColor: "#10b981",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                    fontWeight: "700",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    boxShadow: "0 4px 12px rgba(16,185,129,0.3)"
+                  }}
+                >
+                  📥 Add Missing Skills to Main Graph
+                </button>
+              </div>
+
               {results.summary && (
                 <div style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", padding: "20px", marginBottom: "40px", color: "#e2e8f0" }}>
                   <strong>Summary:</strong> {results.summary}

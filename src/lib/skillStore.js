@@ -9,7 +9,20 @@ const KEY = "skillgraph_skills";
 export function loadSkills() {
   if (typeof window === "undefined") return [];
   try {
-    return JSON.parse(localStorage.getItem(KEY) || "[]");
+    const raw = localStorage.getItem(KEY);
+    if (!raw) {
+      // Seed data if empty
+      const seed = [{
+        id: "seed_1",
+        name: "Welcome to SkillGraph",
+        description: "This is your personal knowledge graph. You can add skills from ESCO or create custom ones.",
+        color: "#4F46E5",
+        relations: { parentclasses: [], subclasses: [], associations: [] }
+      }];
+      saveSkills(seed);
+      return seed;
+    }
+    return JSON.parse(raw);
   } catch {
     return [];
   }

@@ -1,61 +1,28 @@
-﻿import { NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+import { NextResponse } from "next/server";
 
 const SYSTEM_PROMPT = `You are SkillMap, an expert learning coach and curriculum designer. 
 Your job is to analyze a learner's goal and current skills, then identify the exact prerequisite skills they are missing and generate a personalized, day-by-day learning plan.
 
-You MUST return a single valid JSON object and nothing else ΓÇö no markdown fences, no commentary, just raw JSON.`;
+You MUST return a single valid JSON object and nothing else — no markdown fences, no commentary, just raw JSON.`;
 
 function buildUserPrompt(goal, knownSkills, timeAvailable) {
   return `
-A learner wants to achieve this goal: "${goal}"
+Goal: "${goal}"
+Known: "${knownSkills}"
+Time: "${timeAvailable}"
 
-They already know: "${knownSkills}"
+Tasks:
+1. Identify 4-6 MISSING prerequisite skills (ordered by dependency).
+2. List KNOWN skills.
+3. Generate a 7-day learning plan (one task per day).
 
-Their available time: "${timeAvailable}"
-
-Your tasks:
-1. Identify 4-6 prerequisite skills that are MISSING (skills they need but don't have yet), ordered by dependency (most fundamental first).
-2. List the skills they DO know (parsed from their input).
-3. Generate a 7-day learning plan with one concrete task per day.
-
-Return ONLY this exact JSON structure:
+JSON Structure:
 {
-  "missingSkills": [
-    {
-      "id": "ms1",
-      "name": "Skill Name",
-      "why": "One sentence explaining why this skill is a prerequisite",
-      "order": 1
-    }
-  ],
-  "knownSkills": [
-    {
-      "id": "ks1",
-      "name": "Skill Name"
-    }
-  ],
-  "learningPlan": [
-    {
-      "day": 1,
-      "skill": "Skill Name being practised",
-      "task": "Specific, actionable task description (2-3 sentences)",
-      "why": "Why this day's work matters",
-      "resource": "Name of a free resource (YouTube channel, website, or book)"
-    }
-  ],
-  "summary": "One paragraph explaining the skill gap and why this plan will close it"
+  "missingSkills": [{ "id": "ms1", "name": "...", "why": "...", "order": 1 }],
+  "knownSkills": [{ "id": "ks1", "name": "..." }],
+  "learningPlan": [{ "day": 1, "skill": "...", "task": "...", "why": "...", "resource": "..." }],
+  "summary": "..."
 }
-
-Rules:
-- missingSkills must have 4-6 items, ordered from most fundamental to most advanced
-- knownSkills should accurately reflect what the learner already stated
-- learningPlan must have exactly 7 items (days 1-7)
-- All tasks must be achievable in the learner's stated time per day
-- Resources must be real, free, and well-known
-- Return ONLY valid JSON, no markdown, no extra text
 `;
 }
 
@@ -65,53 +32,56 @@ export async function POST(request) {
     const { goal, knownSkills, timeAvailable } = body;
 
     if (!goal || !knownSkills || !timeAvailable) {
-      return NextResponse.json(
-        { error: "Missing required fields: goal, knownSkills, timeAvailable" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === "your_gemini_api_key_here") {
-      return NextResponse.json(
-        { error: "GEMINI_API_KEY is not configured. Add it to .env.local" },
-        { status: 500 }
-      );
+    if (!process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY === "your_openrouter_api_key_here") {
+      return NextResponse.json({ error: "OpenRouter API Key not configured" }, { status: 500 });
     }
 
-    const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
-      systemInstruction: SYSTEM_PROMPT,
-      generationConfig: {
-        temperature: 0.7,
-        responseMimeType: "application/json",
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        "HTTP-Referer": "http://localhost:3000", // Optional, for OpenRouter rankings
+        "X-Title": "SkillGraph", // Optional
+        "Content-Type": "application/json"
       },
+      body: JSON.stringify({
+        model: "google/gemini-2.0-flash-001",
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: buildUserPrompt(goal, knownSkills, timeAvailable) }
+        ],
+        temperature: 0.7,
+        response_format: { type: "json_object" }
+      })
     });
 
-    const userPrompt = buildUserPrompt(goal, knownSkills, timeAvailable);
-    const result = await model.generateContent(userPrompt);
-    const text = result.response.text();
+    const data = await response.json();
 
-    // Parse and validate
+    if (!response.ok) {
+      throw new Error(data.error?.message || `OpenRouter Error ${response.status}`);
+    }
+
+    const text = data.choices?.[0]?.message?.content;
+    if (!text) throw new Error("Empty response from OpenRouter");
+
     let parsed;
     try {
       parsed = JSON.parse(text);
     } catch {
-      // Attempt to strip accidental markdown fences
       const stripped = text.replace(/^```json\s*/i, "").replace(/\s*```$/, "").trim();
       parsed = JSON.parse(stripped);
     }
 
-    // Basic validation
     if (!parsed.missingSkills || !parsed.learningPlan) {
-      throw new Error("LLM returned unexpected structure");
+      throw new Error("Invalid AI response structure");
     }
 
     return NextResponse.json(parsed);
   } catch (err) {
     console.error("[/api/analyze] Error:", err);
-    return NextResponse.json(
-      { error: err.message || "Failed to generate skill analysis" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
