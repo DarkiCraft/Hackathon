@@ -193,12 +193,10 @@ export default function SkillMapGraph({ missingSkills = [], knownSkills = [] }) 
 
   // Custom node painter
   const paintNode = useCallback((node, ctx, globalScale) => {
-    // Prevent crashes if coordinates are not yet numbers (NaN, undefined, etc.)
     if (typeof node.x !== "number" || typeof node.y !== "number") return;
 
-    const size = node.size || 6;
-    const label = node.name;
-    const fontSize = Math.max(10, 13 / globalScale);
+    const size = (node.size || 6) * 0.7;
+    const fontSize = Math.min(Math.max(3.5, 9 / globalScale), 10);
     const safeColor = (() => {
       const c = typeof node.color === "string" ? node.color.trim() : "";
       const isHex = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(c);
@@ -207,14 +205,18 @@ export default function SkillMapGraph({ missingSkills = [], knownSkills = [] }) 
       return isHex || isRgb || isHsl ? c : "#8b5cf6";
     })();
 
-    // Outer glow
-    ctx.beginPath();
-    ctx.arc(node.x, node.y, size + 6, 0, 2 * Math.PI);
-    const glow = ctx.createRadialGradient(node.x, node.y, size * 0.5, node.x, node.y, size + 6);
-    glow.addColorStop(0, colorWithAlpha(safeColor, 0.25));
-    glow.addColorStop(1, colorWithAlpha(safeColor, 0));
-    ctx.fillStyle = glow;
-    ctx.fill();
+    const isHovered = node === tooltip;
+
+    // Outer glow — only when hovered or zoomed in
+    if (isHovered || globalScale > 1.8) {
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, size + 4, 0, 2 * Math.PI);
+      const glow = ctx.createRadialGradient(node.x, node.y, size * 0.5, node.x, node.y, size + 4);
+      glow.addColorStop(0, colorWithAlpha(safeColor, 0.2));
+      glow.addColorStop(1, colorWithAlpha(safeColor, 0));
+      ctx.fillStyle = glow;
+      ctx.fill();
+    }
 
     // Node circle with gradient
     ctx.beginPath();
@@ -222,37 +224,40 @@ export default function SkillMapGraph({ missingSkills = [], knownSkills = [] }) 
     const nodeGrad = ctx.createRadialGradient(node.x - 1, node.y - 1, 0, node.x, node.y, size);
     nodeGrad.addColorStop(0, colorWithAlpha(safeColor, 1));
     nodeGrad.addColorStop(1, colorWithAlpha(safeColor, 0.7));
-    ctx.fillStyle = nodeGrad;
+    ctx.fillStyle = isHovered ? "#c4b5fd" : nodeGrad;
     ctx.fill();
 
     // Inner highlight
     ctx.beginPath();
-    ctx.arc(node.x - 1, node.y - 1, size * 0.4, 0, 2 * Math.PI);
+    ctx.arc(node.x - 0.6, node.y - 0.6, size * 0.35, 0, 2 * Math.PI);
     ctx.fillStyle = "rgba(255,255,255,0.18)";
     ctx.fill();
 
-    // Label
-    if (globalScale > 0.7) {
+    // Label — only when zoomed or hovered
+    if (isHovered || globalScale > 2) {
+      let label = node.name || "";
+      if (label.length > 20 && !isHovered) label = label.slice(0, 18) + "…";
+
       ctx.font = `600 ${fontSize}px Inter, sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
 
       const textWidth = ctx.measureText(label).width;
-      const bh = fontSize + 6;
-      const bx = node.x - textWidth / 2 - 5;
-      const by = node.y + size + 5;
+      const bh = fontSize + 4;
+      const bx = node.x - textWidth / 2 - 4;
+      const by = node.y + size + 3;
       ctx.fillStyle = "rgba(10,10,15,0.85)";
       ctx.beginPath();
-      ctx.roundRect(bx, by, textWidth + 10, bh, 4);
+      ctx.roundRect(bx, by, textWidth + 8, bh, 3);
       ctx.fill();
       ctx.strokeStyle = "rgba(255,255,255,0.06)";
-      ctx.lineWidth = 0.6 / globalScale;
+      ctx.lineWidth = 0.4 / globalScale;
       ctx.stroke();
 
       ctx.fillStyle = "#e2e8f0";
-      ctx.fillText(label, node.x, node.y + size + 7);
+      ctx.fillText(label, node.x, by + 2);
     }
-  }, []);
+  }, [tooltip]);
 
   return (
     <div>
@@ -332,7 +337,7 @@ export default function SkillMapGraph({ missingSkills = [], knownSkills = [] }) 
           onNodeHover={handleNodeHover}
           onNodeClick={handleNodeClick}
           cooldownTime={2000}
-          nodeRelSize={1}
+          nodeRelSize={0.8}
         />
       </div>
 

@@ -96,7 +96,7 @@ export default function HomePage() {
 };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", width: "100vw", height: "100vh", backgroundColor: "var(--bg-base)", color: "var(--text-primary)", position: "relative", zIndex: 1 }}>
+    <div style={{ display: "flex", flexDirection: "column", width: "100vw", height: "100vh", overflow: "hidden", backgroundColor: "var(--bg-base)", color: "var(--text-primary)", position: "relative", zIndex: 1 }}>
 
       {/* ── NAV BAR ── */}
       <nav style={{
@@ -107,26 +107,28 @@ export default function HomePage() {
         backgroundColor: "rgba(10, 10, 15, 0.8)",
         backdropFilter: "blur(24px)",
         WebkitBackdropFilter: "blur(24px)",
-        padding: "0 32px",
-        height: "60px",
+        padding: "0 clamp(12px, 3vw, 32px)",
+        height: "52px",
         flexShrink: 0,
         zIndex: 100,
         position: "sticky",
-        top: 0
+        top: 0,
+        gap: "8px",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
           <div style={{
-            width: "32px", height: "32px", borderRadius: "10px",
+            width: "28px", height: "28px", borderRadius: "8px",
             background: "linear-gradient(135deg, var(--color-primary) 0%, #6366f1 100%)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: "16px", boxShadow: "0 0 20px rgba(139, 92, 246, 0.3)"
+            fontSize: "14px", boxShadow: "0 0 20px rgba(139, 92, 246, 0.3)",
+            flexShrink: 0,
           }}>
             🧭
           </div>
           <span style={{
-            fontWeight: "800", fontSize: "18px", letterSpacing: "-0.03em",
+            fontWeight: "800", fontSize: "16px", letterSpacing: "-0.03em",
             background: "linear-gradient(135deg, #c084fc, #818cf8)",
-            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent"
+            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
           }}>
             SkillGraph
           </span>
@@ -177,22 +179,20 @@ export default function HomePage() {
   onClose={() => setPendingSkills([])}
 />
 )}
-        <div style={{ display: "flex", gap: "4px", height: "100%", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
           <button
             className={`nav-tab ${activeTab === "graph" ? "active" : ""}`}
             onClick={() => setActiveTab("graph")}
           >
-            <span style={{ fontSize: "16px" }}>📊</span> Dashboard
+            <span style={{ fontSize: "14px" }}>📊</span> Dashboard
           </button>
           <button
             className={`nav-tab ${activeTab === "skillmap" ? "active" : ""}`}
             onClick={() => setActiveTab("skillmap")}
           >
-            <span style={{ fontSize: "16px" }}>⚡</span> Gap Analyzer
+            <span style={{ fontSize: "14px" }}>⚡</span> Gap Analyzer
           </button>
         </div>
-
-        <div style={{ width: "120px" }} /> {/* Spacer */}
       </nav>
 
       {/* ── SKILL GRAPH TAB ── */}

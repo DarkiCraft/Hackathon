@@ -1,6 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+
+const STORAGE_KEY = "skillmap_form_input";
 
 const EXAMPLES = [
   {
@@ -25,6 +27,30 @@ export default function SkillMapInput({ onSubmit, loading, hasResults }) {
   const [knownSkills, setKnownSkills] = useState("");
   const [timeAvailable, setTimeAvailable] = useState("");
   const [focused, setFocused] = useState(null);
+
+  // Restore form data from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const data = JSON.parse(saved);
+        if (data.goal) setGoal(data.goal);
+        if (data.knownSkills) setKnownSkills(data.knownSkills);
+        if (data.timeAvailable) setTimeAvailable(data.timeAvailable);
+      }
+    } catch (e) {
+      // ignore parse errors
+    }
+  }, []);
+
+  // Persist form data to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ goal, knownSkills, timeAvailable }));
+    } catch (e) {
+      // ignore storage errors
+    }
+  }, [goal, knownSkills, timeAvailable]);
 
   const handleSubmit = (e) => {
     e.preventDefault();

@@ -17,6 +17,24 @@ function sanitizeColor(color, fallback = "#8b5cf6") {
   return isHex || isRgb || isHsl ? trimmed : fallback;
 }
 
+// Convert any color to a safe hex string (needed for Three.js / 3D mode)
+function toHex(color, fallback = "#8b5cf6") {
+  if (typeof color !== "string") return fallback;
+  const trimmed = color.trim();
+  if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(trimmed)) {
+    return trimmed.length === 4
+      ? `#${trimmed[1]}${trimmed[1]}${trimmed[2]}${trimmed[2]}${trimmed[3]}${trimmed[3]}`
+      : trimmed;
+  }
+  // Try to parse rgba/rgb
+  const rgbMatch = trimmed.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/); 
+  if (rgbMatch) {
+    const [, r, g, b] = rgbMatch;
+    return `#${Number(r).toString(16).padStart(2,"0")}${Number(g).toString(16).padStart(2,"0")}${Number(b).toString(16).padStart(2,"0")}`;
+  }
+  return fallback;
+}
+
 function hexToRgba(hex, alpha) {
   const safeHex = sanitizeColor(hex);
   if (!safeHex.startsWith("#")) return `rgba(99,102,241,${alpha})`;
@@ -50,7 +68,8 @@ function buildGraphData(skills) {
       links.push({
         source: prereqId,
         target: node.id,
-        color: "rgba(148,163,184,0.2)",
+        color: "#94a3b8",
+        opacity: 0.2,
         width: 1,
       });
     });
@@ -77,10 +96,23 @@ export default function Graph({ savedPaths = [], onDeletePath }) {
   const [is3D, setIs3D] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [dimensions, setDimensions] = useState({ width: 1200, height: 700 });
-  const [activePath, setActivePath] = useState(null); // selected saved path
+  const [activePath, setActivePath] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const GraphComponent = is3D ? ForceGraph3D : ForceGraph2D;
+
+  // Detect mobile on mount & resize
+  useEffect(() => {
+    const check = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+      if (mobile) setSidebarOpen(false);
+    };
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   // Load full KG from skills.json on mount
   useEffect(() => {
@@ -109,6 +141,35 @@ export default function Graph({ savedPaths = [], onDeletePath }) {
     const t = setTimeout(() => fgRef.current.zoomToFit?.(1000, 60), 100);
     return () => clearTimeout(t);
   }, [is3D, graphData.nodes.length]);
+
+  const handleZoomIn = useCallback(() => {
+    if (!fgRef.current) return;
+    if (is3D) {
+      // 3D zoom: move camera closer
+      const pos = fgRef.current.cameraPosition();
+      fgRef.current.cameraPosition(
+        { x: pos.x * 0.7, y: pos.y * 0.7, z: pos.z * 0.7 },
+        undefined, 400
+      );
+    } else {
+      const z = fgRef.current.zoom();
+      fgRef.current.zoom(z * 1.4, 400);
+    }
+  }, [is3D]);
+
+  const handleZoomOut = useCallback(() => {
+    if (!fgRef.current) return;
+    if (is3D) {
+      const pos = fgRef.current.cameraPosition();
+      fgRef.current.cameraPosition(
+        { x: pos.x * 1.4, y: pos.y * 1.4, z: pos.z * 1.4 },
+        undefined, 400
+      );
+    } else {
+      const z = fgRef.current.zoom();
+      fgRef.current.zoom(z * 0.7, 400);
+    }
+  }, [is3D]);
 
   const focusNode = useCallback((node) => {
     if (!node || !fgRef.current) return;
@@ -158,26 +219,24 @@ export default function Graph({ savedPaths = [], onDeletePath }) {
     // Determine color based on path membership
     let baseColor;
     if (!activePathIds) {
-      // No path selected — use domain color
       baseColor = sanitizeColor(node.color, "#8b5cf6");
     } else if (inPath) {
-      // In active path — check if known or missing
       const isKnown = (activePath.knownSkills || []).some(s => s.id === node.id);
       baseColor = isKnown ? "#10b981" : "#ef4444";
     } else {
-      baseColor = "#334155"; // dimmed
+      baseColor = "#334155";
     }
 
     const alpha = activePathIds && !inPath ? 0.25 : 1;
-    const radius = isHovered && inPath ? 10 : 7;
-    const fontSize = Math.max(10, 12 / globalScale);
+    const radius = isHovered && inPath ? 6 : 4;
+    const fontSize = Math.min(Math.max(3.5, 9 / globalScale), 11);
 
-    // Glow (only for path nodes)
-    if (inPath || !activePathIds) {
+    // Glow (only for path nodes or hovered)
+    if ((inPath || !activePathIds) && (isHovered || globalScale > 1.5)) {
       ctx.beginPath();
-      ctx.arc(node.x, node.y, radius + 8, 0, 2 * Math.PI);
-      const glow = ctx.createRadialGradient(node.x, node.y, radius, node.x, node.y, radius + 8);
-      glow.addColorStop(0, hexToRgba(baseColor, 0.3 * alpha));
+      ctx.arc(node.x, node.y, radius + 5, 0, 2 * Math.PI);
+      const glow = ctx.createRadialGradient(node.x, node.y, radius, node.x, node.y, radius + 5);
+      glow.addColorStop(0, hexToRgba(baseColor, 0.25 * alpha));
       glow.addColorStop(1, hexToRgba(baseColor, 0));
       ctx.fillStyle = glow;
       ctx.fill();
@@ -186,7 +245,7 @@ export default function Graph({ savedPaths = [], onDeletePath }) {
     // Node circle
     ctx.beginPath();
     ctx.arc(node.x, node.y, radius, 0, 2 * Math.PI);
-    const grad = ctx.createRadialGradient(node.x-2, node.y-2, 0, node.x, node.y, radius);
+    const grad = ctx.createRadialGradient(node.x-1, node.y-1, 0, node.x, node.y, radius);
     grad.addColorStop(0, hexToRgba(baseColor, alpha));
     grad.addColorStop(1, hexToRgba(baseColor, 0.75 * alpha));
     ctx.fillStyle = isHovered ? "#c4b5fd" : grad;
@@ -194,50 +253,63 @@ export default function Graph({ savedPaths = [], onDeletePath }) {
 
     // Inner highlight
     ctx.beginPath();
-    ctx.arc(node.x-1.5, node.y-1.5, radius * 0.5, 0, 2 * Math.PI);
-    ctx.fillStyle = `rgba(255,255,255,${0.2 * alpha})`;
+    ctx.arc(node.x - 0.8, node.y - 0.8, radius * 0.4, 0, 2 * Math.PI);
+    ctx.fillStyle = `rgba(255,255,255,${0.18 * alpha})`;
     ctx.fill();
 
-    // Label — only show for path nodes or when zoomed in
-    const showLabel = (!activePathIds && globalScale > 1.2) ||
-                      (inPath && globalScale > 0.6) ||
-                      isHovered;
+    // Label — show on hover, or when zoomed in enough
+    const showLabel = isHovered ||
+                      (!activePathIds && globalScale > 2.5) ||
+                      (activePathIds && inPath && globalScale > 1.5);
     if (showLabel) {
+      // Truncate long labels
+      let label = node.name || "";
+      if (label.length > 22 && !isHovered) label = label.slice(0, 20) + "…";
+
       ctx.font = `600 ${fontSize}px Inter, sans-serif`;
-      const textWidth = ctx.measureText(node.name).width;
-      const x = node.x - textWidth / 2 - 6;
-      const y = node.y + radius + 6;
-      const bh = fontSize + 8;
+      const textWidth = ctx.measureText(label).width;
+      const x = node.x - textWidth / 2 - 4;
+      const y = node.y + radius + 3;
+      const bh = fontSize + 5;
 
       ctx.fillStyle = `rgba(10,10,15,${0.88 * alpha})`;
       ctx.beginPath();
-      ctx.roundRect(x, y, textWidth + 12, bh, 6);
+      ctx.roundRect(x, y, textWidth + 8, bh, 4);
       ctx.fill();
-      ctx.strokeStyle = `rgba(255,255,255,${0.08 * alpha})`;
-      ctx.lineWidth = 0.8 / globalScale;
+      ctx.strokeStyle = `rgba(255,255,255,${0.06 * alpha})`;
+      ctx.lineWidth = 0.5 / globalScale;
       ctx.stroke();
 
       ctx.fillStyle = `rgba(226,232,240,${alpha})`;
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
-      ctx.fillText(node.name, node.x, y + 4);
+      ctx.fillText(label, node.x, y + 2.5);
     }
   }, [hoverNode, activePathIds, activePath]);
 
-  // Link color with dim logic
+  // Link color with dim logic — must return hex for 3D compatibility
   const getLinkColor = useCallback((link) => {
-    if (!activePathIds) return link.color || "rgba(148,163,184,0.2)";
+    if (is3D) {
+      // Three.js only supports hex/named colors, not rgba
+      if (!activePathIds) return "#94a3b8";
+      const srcId = link.source?.id || link.source;
+      const tgtId = link.target?.id || link.target;
+      const bothInPath = activePathIds.has(srcId) && activePathIds.has(tgtId);
+      return bothInPath ? "#94a3b8" : "#1e293b";
+    }
+    // 2D mode supports rgba for transparency
+    if (!activePathIds) return link.color ? `rgba(148,163,184,0.2)` : "rgba(148,163,184,0.2)";
     const srcId = link.source?.id || link.source;
     const tgtId = link.target?.id || link.target;
     const bothInPath = activePathIds.has(srcId) && activePathIds.has(tgtId);
     return bothInPath ? "rgba(148,163,184,0.6)" : "rgba(148,163,184,0.04)";
-  }, [activePathIds]);
+  }, [activePathIds, is3D]);
 
   const filteredMatches = graphData.nodes.filter(n =>
     searchTerm.trim() ? n.name.toLowerCase().includes(searchTerm.trim().toLowerCase()) : false
   );
 
-  const SIDEBAR_WIDTH = 280;
+  const SIDEBAR_WIDTH = isMobile ? 260 : 280;
 
   return (
     <div style={{ display: "flex", width: "100%", height: "100%", position: "relative" }}>
@@ -247,7 +319,7 @@ export default function Graph({ savedPaths = [], onDeletePath }) {
         width: sidebarOpen ? `${SIDEBAR_WIDTH}px` : "0px",
         minWidth: sidebarOpen ? `${SIDEBAR_WIDTH}px` : "0px",
         height: "100%",
-        background: "rgba(10,10,15,0.92)",
+        background: "rgba(10,10,15,0.96)",
         borderRight: "1px solid var(--border-subtle)",
         backdropFilter: "blur(20px)",
         overflow: "hidden",
@@ -256,6 +328,12 @@ export default function Graph({ savedPaths = [], onDeletePath }) {
         flexDirection: "column",
         zIndex: 30,
         flexShrink: 0,
+        // On mobile, overlay instead of pushing content
+        ...(isMobile && sidebarOpen ? {
+          position: "absolute",
+          top: 0, left: 0, bottom: 0,
+          boxShadow: "4px 0 24px rgba(0,0,0,0.5)",
+        } : {}),
       }}>
         <div style={{ padding: "20px 16px 12px", borderBottom: "1px solid var(--border-subtle)", flexShrink: 0 }}>
           <h3 style={{ fontSize: "14px", fontWeight: 800, color: "var(--text-primary)", marginBottom: "4px" }}>
@@ -394,9 +472,11 @@ export default function Graph({ savedPaths = [], onDeletePath }) {
           graphData={graphData}
           width={dimensions.width}
           height={dimensions.height}
-          backgroundColor="transparent"
+          backgroundColor={is3D ? "#0a0a0f" : "transparent"}
           nodeLabel="name"
-          {...(!is3D ? { nodeCanvasObject: renderNode2D, nodeCanvasObjectMode: () => "replace" } : {})}
+          {...(!is3D ? { nodeCanvasObject: renderNode2D, nodeCanvasObjectMode: () => "replace" } : {
+            nodeColor: node => toHex(node.color),
+          })}
           linkColor={getLinkColor}
           linkWidth={l => {
             if (!activePathIds) return l.width || 1;
@@ -404,6 +484,7 @@ export default function Graph({ savedPaths = [], onDeletePath }) {
             const t = l.target?.id || l.target;
             return activePathIds.has(s) && activePathIds.has(t) ? 2 : 0.3;
           }}
+          linkOpacity={is3D ? 0.3 : undefined}
           linkCurvature={0.08}
           linkDirectionalParticleWidth={2}
           linkDirectionalArrowLength={6}
@@ -413,7 +494,7 @@ export default function Graph({ savedPaths = [], onDeletePath }) {
           linkDirectionalParticleColor={() => activePath ? "#10b981" : "#8b5cf6"}
           onNodeClick={handleNodeClick}
           onNodeHover={setHoverNode}
-          nodeRelSize={5}
+          nodeRelSize={3}
           cooldownTime={1200}
         />
 
@@ -435,17 +516,19 @@ export default function Graph({ savedPaths = [], onDeletePath }) {
 
         {/* ── Top controls ── */}
         <div style={{
-          position: "absolute", top: "16px", left: "50%", transform: "translateX(-50%)",
-          display: "flex", gap: "8px", alignItems: "center", zIndex: 25,
+          position: "absolute", top: isMobile ? "10px" : "16px",
+          left: "50%", transform: "translateX(-50%)",
+          display: "flex", gap: isMobile ? "4px" : "8px", alignItems: "center", zIndex: 25,
+          maxWidth: isMobile ? "calc(100% - 100px)" : "auto",
         }}>
-          <div style={{ position: "relative" }}>
+          <div style={{ position: "relative", flex: isMobile ? 1 : "none" }}>
             <input
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               onKeyDown={e => e.key === "Enter" && handleFocusBySearch()}
               placeholder="Search skills..."
               className="skillmap-input"
-              style={{ padding: "9px 14px", fontSize: "13px", width: "220px" }}
+              style={{ padding: isMobile ? "7px 10px" : "9px 14px", fontSize: isMobile ? "12px" : "13px", width: isMobile ? "100%" : "220px" }}
             />
             {searchTerm && filteredMatches.length > 0 && (
               <div style={{
@@ -479,22 +562,34 @@ export default function Graph({ savedPaths = [], onDeletePath }) {
           </button>
         </div>
 
+        {/* ── Zoom +/- controls ── */}
+        <div className="zoom-controls">
+          <button className="zoom-btn" onClick={handleZoomIn} title="Zoom in">+</button>
+          <div className="zoom-divider" />
+          <button className="zoom-btn" onClick={handleZoomOut} title="Zoom out">−</button>
+        </div>
+
         {/* ── Active path banner ── */}
         {activePath && (
           <div className="animate-fade-in" style={{
-            position: "absolute", bottom: "16px", left: "50%", transform: "translateX(-50%)",
+            position: "absolute", bottom: isMobile ? "70px" : "16px",
+            left: "50%", transform: "translateX(-50%)",
             background: "rgba(10,10,15,0.92)", border: "1px solid rgba(139,92,246,0.4)",
-            borderRadius: "14px", padding: "12px 20px", zIndex: 25,
+            borderRadius: isMobile ? "10px" : "14px",
+            padding: isMobile ? "8px 12px" : "12px 20px", zIndex: 25,
             backdropFilter: "blur(16px)", boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
-            display: "flex", alignItems: "center", gap: "16px",
+            display: "flex", alignItems: "center", gap: isMobile ? "8px" : "16px",
             maxWidth: "calc(100% - 32px)",
+            flexWrap: isMobile ? "wrap" : "nowrap",
           }}>
-            <span style={{ fontSize: "13px", fontWeight: 700, color: "#c084fc" }}>
+            <span style={{ fontSize: isMobile ? "11px" : "13px", fontWeight: 700, color: "#c084fc" }}>
               🎯 {activePath.goal}
             </span>
-            <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
-              {activePath.knownSkills?.length} known · {activePath.missingSkills?.length} to learn
-            </span>
+            {!isMobile && (
+              <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                {activePath.knownSkills?.length} known · {activePath.missingSkills?.length} to learn
+              </span>
+            )}
             <button
               onClick={() => setActivePath(null)}
               style={{
@@ -510,7 +605,7 @@ export default function Graph({ savedPaths = [], onDeletePath }) {
         )}
 
         {/* ── Hover preview ── */}
-        {hoverNode && (
+        {hoverNode && !isMobile && (
           <div className="animate-fade-in" style={{
             position: "absolute", right: "16px", bottom: "16px", zIndex: 20,
             width: "260px", background: "rgba(10,10,15,0.92)",
