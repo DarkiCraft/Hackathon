@@ -3,14 +3,12 @@ import React, { useState } from "react";
 
 /**
  * Modernised SkillDetails.
- * Displays node info with a high-end dark theme.
+ * Updated to handle: { id, label, needs, level, domain }
  */
 export default function SkillDetails({ node, onEdit, onDelete, onClose }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
-  const { parentclasses = [], subclasses = [], associations = [] } =
-    node.relations || {};
-
+  // Helper for consistent section styling
   const detailSection = (title, content, color) => (
     <div style={{ marginBottom: "20px" }}>
       <h4 style={{ fontSize: "11px", fontWeight: "800", color: "#8b949e", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "8px" }}>
@@ -24,49 +22,48 @@ export default function SkillDetails({ node, onEdit, onDelete, onClose }) {
 
   return (
     <div className="animate-fade-in">
-      {/* Title */}
-      <h2 style={{ fontSize: "28px", fontWeight: "900", color: "#f0f6fc", marginBottom: "16px", letterSpacing: "-0.02em" }}>
-        {node.name}
-      </h2>
-
-      {/* Description */}
-      {detailSection("Description", node.description)}
-
-      {/* Notes */}
-      {node.notes && detailSection("Notes", node.notes)}
-
-      {/* Links */}
-      {node.links?.length > 0 && detailSection("Resources", (
-        <div style={{ display: "grid", gap: "8px" }}>
-          {node.links.map((link, i) => (
-            <a 
-              key={i} 
-              href={link} 
-              target="_blank" 
-              rel="noreferrer"
-              style={{ color: "#58a6ff", textDecoration: "none", display: "flex", alignItems: "center", gap: "6px" }}
-              onMouseEnter={e => e.currentTarget.style.textDecoration = "underline"}
-              onMouseLeave={e => e.currentTarget.style.textDecoration = "none"}
-            >
-              <span>🔗</span> <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{link}</span>
-            </a>
-          ))}
+      {/* Header with Domain Tag */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
+        <div>
+          <h2 style={{ fontSize: "28px", fontWeight: "900", color: "#f0f6fc", margin: 0, letterSpacing: "-0.02em" }}>
+            {node.label}
+          </h2>
+          <span style={{ fontSize: "12px", color: "#58a6ff", fontWeight: "700", textTransform: "uppercase" }}>
+            {node.domain}
+          </span>
         </div>
-      ))}
+        <div style={{ background: "rgba(88, 166, 255, 0.1)", border: "1px solid #58a6ff", color: "#58a6ff", padding: "4px 12px", borderRadius: "12px", fontSize: "12px", fontWeight: "bold" }}>
+          LVL {node.level}
+        </div>
+      </div>
 
-      {/* Hierarchy Summary */}
+      {/* Description / Metadata */}
+      {detailSection("Node ID", <code style={{ fontSize: "13px", color: "#79c0ff" }}>{node.id}</code>)}
+      
+      {/* Requirements / Dependencies */}
       <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: "16px", padding: "20px", border: "1px solid rgba(255,255,255,0.08)", marginBottom: "32px" }}>
-        <h4 style={{ fontSize: "12px", fontWeight: "800", color: "#fff", textTransform: "uppercase", marginBottom: "12px" }}>ONTOLOGY</h4>
+        <h4 style={{ fontSize: "12px", fontWeight: "800", color: "#fff", textTransform: "uppercase", marginBottom: "12px" }}>Dependencies</h4>
         
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-          <div>
-            <p style={{ fontSize: "11px", color: "#8b949e", fontWeight: "700", marginBottom: "4px" }}>PARENTS</p>
-            <div style={{ fontSize: "13px" }}>{parentclasses.length > 0 ? parentclasses.map(p => p.name).join(", ") : "None"}</div>
-          </div>
-          <div>
-            <p style={{ fontSize: "11px", color: "#8b949e", fontWeight: "700", marginBottom: "4px" }}>CHILDREN</p>
-            <div style={{ fontSize: "13px" }}>{subclasses.length > 0 ? subclasses.map(s => s.name).join(", ") : "None"}</div>
-          </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+          {node.needs && node.needs.length > 0 ? (
+            node.needs.map((need) => (
+              <span 
+                key={need} 
+                style={{ 
+                  background: "#30363d", 
+                  color: "#c9d1d9", 
+                  padding: "4px 10px", 
+                  borderRadius: "6px", 
+                  fontSize: "12px",
+                  border: "1px solid rgba(255,255,255,0.1)"
+                }}
+              >
+                {need}
+              </span>
+            ))
+          ) : (
+            <span style={{ fontSize: "13px", color: "#8b949e" }}>No requirements listed.</span>
+          )}
         </div>
       </div>
 
