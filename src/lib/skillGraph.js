@@ -1,5 +1,19 @@
 import skillsData from "@/data/skills.json";
 
+export function normalizeSkill(skill) {
+  return {
+    id: skill.id,
+    name: skill.name || skill.label,
+    label: skill.label || skill.name,
+    description: skill.description || "",
+    needs: skill.needs || [],
+    needsLabels: skill.needsLabels || [],
+    why: skill.why || "",
+    level: skill.level || 3,
+    source: skill.source || "unknown",
+  };
+}
+
 // Build a lookup map: id → skill
 const SKILL_MAP = Object.fromEntries(
   skillsData.skills.map((s) => [s.id, s])
@@ -78,4 +92,60 @@ export function getSkillById(id) {
 
 export function getAllSkills() {
   return skillsData.skills;
+}
+
+// Runtime-only additions (approved by user). 
+// For permanent additions, write to skills.json manually.
+const runtimeSkills = new Map();
+
+export function addSkillToKG(skill) {
+  if (!skill?.id || !skill?.name) return { success: false };
+
+  // dedupe check
+  const existingId = findExistingSkillIdByName(skill.name);
+  if (existingId) {
+    return { success: true, id: existingId, deduped: true };
+  }
+
+  const normalized = normalizeSkill(skill);
+
+SKILL_MAP[normalized.id] = {
+  id: normalized.id,
+  label: normalized.name,
+  description: normalized.description,
+  needs: normalized.needs,
+  domain: normalized.source,
+  level: normalized.level,
+};
+
+  runtimeSkills.set(skill.id, SKILL_MAP[skill.id]);
+
+  console.log("[APPROVED_SKILL]", JSON.stringify(skill, null, 2)); // persistence hook
+
+  return { success: true, id: skill.id };
+}
+export function getRuntimeSkills() {
+  return [...runtimeSkills.values()];
+}
+
+function normalizeName(name) {
+  return name.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+export function findExistingSkillIdByName(name) {
+  const norm = normalizeName(name);
+  for (const skill of Object.values(SKILL_MAP)) {
+    if (normalizeName(skill.label) === norm) {
+      return skill.id;
+    }
+  }
+  return null;
+}
+
+export function skillExistsByName(name) {
+  const normalized = name.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+  return Object.values(SKILL_MAP).some(s =>
+    s.label.toLowerCase().replace(/[^a-z0-9]/g, "") === normalized
+  );
 }

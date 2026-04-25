@@ -1,31 +1,36 @@
 import { NextResponse } from "next/server";
-import { matchSkillId, getPrereqs, getSkillById } from "@/lib/skillGraph";
+import { resolveGapAnalysis } from "@/lib/resolveSkill";
 
 const SYSTEM_PROMPT = `You are SkillMap, an expert learning coach.
-Given a list of skill gaps (already identified by a knowledge graph), your job is to:
-1. Explain WHY each missing skill matters for the goal (1 sentence each).
-2. Generate a personalized day-by-day learning plan calibrated to the time available.
-You MUST return a single valid JSON object and nothing else — no markdown fences, no commentary.`;
+You are given a goal and skill gap analysis already performed by a knowledge graph.
+Your ONLY jobs are:
+1. For each missing skill, write a 1-sentence "why" explaining its importance.
+2. Generate a personalized day-by-day learning plan.
+3. If the goal was NOT found in the knowledge graph, also identify 4-6 missing prerequisite skills.
+Return ONLY valid JSON, no markdown fences.`;
 
-function buildUserPrompt(goal, knownSkillLabels, missingSkillLabels, timeAvailable) {
+function buildPrompt(goal, knownLabels, missingLabels, timeAvailable, needsLLMGapDetection) {
   return `
 Goal: "${goal}"
-Known Skills: ${knownSkillLabels.join(", ")}
-Missing Skills (in learning order, first = deepest prerequisite): ${missingSkillLabels.join(", ")}
+Known Skills: ${knownLabels.join(", ") || "none provided"}
+${missingLabels.length > 0
+    ? `Missing Skills (from knowledge graph, in learning order): ${missingLabels.join(", ")}`
+    : `NOTE: Goal was not found in the knowledge graph. You must identify 4-6 missing prerequisite skills yourself.`
+}
 Time Available Per Day: "${timeAvailable}"
 
-Tasks:
-1. For each missing skill, write a 1-sentence "why" explaining its importance for the goal.
-2. Generate a 7-day learning plan calibrated to "${timeAvailable}" per day:
-   - Days 1-2: Review/reinforce the KNOWN skills as foundation (name them directly).
-   - Days 3-7: Cover missing skills in the order given, one per day.
-   - SHORT time (≤30 min): one micro-task per day (one video, one article, one exercise).
-   - MEDIUM time (1-2 hrs): 2-3 steps per day (read + practice + mini exercise).
-   - LONG time (3+ hrs): deep hands-on work (build something, full tutorial chapter).
-   - Every task must state how long it takes. Resource must be a specific, free, real link or title.
-3. Write a 2-sentence summary.
+${needsLLMGapDetection ? `
+Task 1: Identify 4-6 missing prerequisite skills ordered by dependency (order=1 is deepest).
+` : ""}
+Task ${needsLLMGapDetection ? 2 : 1}: For each missing skill, write a 1-sentence "why".
+Task ${needsLLMGapDetection ? 3 : 2}: Generate a 7-day learning plan:
+- Days 1-2: Review known skills as foundation.
+- Days 3-7: Cover missing skills in order.
+- Calibrate ALL tasks to "${timeAvailable}" per day.
+- SHORT (≤30min): one micro-task. MEDIUM (1-2hr): 2-3 steps. LONG (3+hr): build something.
+- Each task states its duration. Resources must be specific and free.
 
-IMPORTANT: Tasks must match "${timeAvailable}" — a 30-min and 3-hour learner get completely different tasks.
+IMPORTANT: Multiple entries per day are allowed if time permits, but each entry must have a unique day+task combo.
 
 Return ONLY:
 {
@@ -33,55 +38,27 @@ Return ONLY:
   "knownSkills": [{ "id": "...", "name": "..." }],
   "learningPlan": [{ "day": 1, "skill": "...", "task": "...", "why": "...", "resource": "..." }],
   "summary": "..."
-}
-`;
+}`;
 }
 
 export async function POST(request) {
   try {
-    const body = await request.json();
-    const { goal, knownSkills, timeAvailable } = body;
+    const { goal, knownSkills, timeAvailable } = await request.json();
 
     if (!goal || !knownSkills || !timeAvailable) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // ── STEP 1: Match user's known skills to KG ids ──────────────
-    const knownRaw = knownSkills
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
+    const knownSkillNames = knownSkills.split(",").map(s => s.trim()).filter(Boolean);
 
-    const knownIds = knownRaw
-      .map((name) => matchSkillId(name))
-      .filter(Boolean);
+    // ── Run the KG → ESCO → Wikidata pipeline ────────────────────
+    const { missingFromKG, knownResolved, pendingSkills, needsLLM } =
+      await resolveGapAnalysis(goal, knownSkillNames);
 
-    // ── STEP 2: Match goal to KG target skill(s) ─────────────────
-    const goalId = matchSkillId(goal);
+    const knownLabels = knownResolved.map(s => s.name);
+    const missingLabels = missingFromKG.map(s => s.name);
 
-    let missingFromKG = [];
-    let knownSkillObjects = knownIds.map((id) => {
-  const s = getSkillById(id);
-  return { id, name: s?.label || id, needs: s?.needs || [] };
-});
-
-    if (goalId) {
-      // We found the goal in the KG — run BFS
-      const { missing } = getPrereqs([goalId], knownIds);
-      missingFromKG = missing.map((s, i) => ({
-        id: s.id,
-        name: s.label,
-        needs: s.needs,
-        order: i + 1,
-        why: "", // AI will fill this in
-      }));
-    }
-    // If goal not in KG, missingFromKG stays empty — AI will identify gaps itself
-
-    const knownLabels = knownSkillObjects.map((s) => s.name);
-    const missingLabels = missingFromKG.map((s) => s.name);
-
-    // ── STEP 3: AI enriches with "why" + learning plan ────────────
+    // ── Call LLM ─────────────────────────────────────────────────
     if (!process.env.OPENROUTER_API_KEY) {
       return NextResponse.json({ error: "OpenRouter API Key not configured" }, { status: 500 });
     }
@@ -97,10 +74,7 @@ export async function POST(request) {
         model: "google/gemini-2.0-flash-001",
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
-          {
-            role: "user",
-            content: buildUserPrompt(goal, knownLabels, missingLabels, timeAvailable),
-          },
+          { role: "user", content: buildPrompt(goal, knownLabels, missingLabels, timeAvailable, needsLLM) },
         ],
         temperature: 0.7,
         response_format: { type: "json_object" },
@@ -116,36 +90,48 @@ export async function POST(request) {
     let parsed;
     try {
       parsed = JSON.parse(text);
+      if (parsed.provenance?.missingSource === "llm") {
+  parsed.pendingSkills = (parsed.missingSkills || []).map(s => ({
+    source: "llm",
+    skill: {
+      id: `llm_${s.name.toLowerCase().replace(/\s+/g, "_")}`,
+      name: s.name,
+      description: s.why || "",
+      confidence: 0.5,
+    }
+  }));
+}
     } catch {
-      const stripped = text.replace(/^```json\s*/i, "").replace(/\s*```$/, "").trim();
-      parsed = JSON.parse(stripped);
+      parsed = JSON.parse(text.replace(/^```json\s*/i, "").replace(/\s*```$/, "").trim());
     }
 
-    // ── STEP 4: Merge KG structure with AI enrichment ─────────────
-    // If KG found missing skills, use KG ordering but inject AI's "why"
+    // ── Merge KG structure with LLM enrichment ───────────────────
     if (missingFromKG.length > 0) {
-      const aiMissingMap = Object.fromEntries(
-        (parsed.missingSkills || []).map((s) => [
-          s.name?.toLowerCase(),
-          s,
-        ])
+      const aiWhyMap = Object.fromEntries(
+        (parsed.missingSkills || []).map(s => [s.name?.toLowerCase(), s.why])
       );
-      parsed.missingSkills = missingFromKG.map((kgSkill) => ({
-        ...kgSkill,
-        why:
-          aiMissingMap[kgSkill.name.toLowerCase()]?.why ||
-          `Required prerequisite for ${goal}.`,
+      parsed.missingSkills = missingFromKG.map(s => ({
+        ...s,
+        why: aiWhyMap[s.name.toLowerCase()] || `Required prerequisite for ${goal}.`,
       }));
     }
 
-    // Always use the matched known skills from KG (not AI's guess)
-    if (knownSkillObjects.length > 0) {
-      parsed.knownSkills = knownSkillObjects;
+    if (knownResolved.length > 0) {
+      parsed.knownSkills = knownResolved;
     }
+
+    // ── Attach source provenance + pending approvals ──────────────
+    parsed.provenance = {
+      missingSource: missingFromKG.length > 0 ? "kg" : "llm",
+      knownSource: knownResolved.map(s => ({ id: s.id, source: s.source })),
+    };
+    parsed.pendingSkills = pendingSkills; // skills awaiting user approval
 
     if (!parsed.missingSkills || !parsed.learningPlan) {
       throw new Error("Invalid AI response structure");
     }
+    console.log("📦 FINAL RESPONSE:", parsed);
+console.log("📌 PENDING SKILLS SENT TO UI:", parsed.pendingSkills);
 
     return NextResponse.json(parsed);
   } catch (err) {

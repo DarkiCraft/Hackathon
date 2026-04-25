@@ -3,6 +3,8 @@
 import React, { useState } from "react";
 import dynamic from "next/dynamic";
 import { savePath, loadPaths, deletePath } from "@/lib/pathStore";
+import PendingSkillsDialog from "@/components/PendingSkillsDialog";
+import { addSkillToKG } from "@/lib/skillGraph";
 
 // Force graph requires window — disable SSR
 const Graph = dynamic(() => import("@/components/Graph"), { ssr: false });
@@ -26,6 +28,7 @@ export default function HomePage() {
   const [error, setError] = useState(null);
   const [formData, setFormData] = useState(null);
   const [savedPaths, setSavedPaths] = useState([]);
+  const [pendingSkills, setPendingSkills] = useState([]);
 
   // Load persisted state only on client after mount to avoid hydration mismatch
   React.useEffect(() => {
@@ -128,7 +131,52 @@ export default function HomePage() {
             SkillGraph
           </span>
         </div>
+        {pendingSkills.length > 0 && (
+  <PendingSkillsDialog
+  pendingSkills={pendingSkills}
+  onApprove={async (skills) => {
+  const newKnown = [];
 
+  for (const s of skills) {
+    await fetch("/api/save-skill", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(s),
+    });
+
+    // 🔥 update runtime KG
+    addSkillToKG({
+      id: s.skill.id,
+      name: s.skill.name,
+      description: s.skill.description,
+      needs: s.skill.needs || [],
+      level: s.skill.level || 3,
+      source: s.source,
+    });
+
+    newKnown.push({
+      id: s.skill.id,
+      name: s.skill.name,
+      needs: s.skill.needs || [],
+      source: s.source,
+      confidence: s.confidence,
+    });
+  }
+
+  // 🔥 IMPORTANT: update graph state
+  setResults(prev => ({
+    ...prev,
+    knownSkills: [
+      ...(prev.knownSkills || []),
+      ...newKnown
+    ],
+  }));
+
+  setPendingSkills([]);
+}}
+  onClose={() => setPendingSkills([])}
+/>
+)}
         <div style={{ display: "flex", gap: "4px", height: "100%", alignItems: "center" }}>
           <button
             className={`nav-tab ${activeTab === "graph" ? "active" : ""}`}
